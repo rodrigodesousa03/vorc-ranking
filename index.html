@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VORC Series — Ranking de Pilotos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --orange:     #f5a623;
+      --orange-dk:  #d4891a;
+      --bg:         #111113;
+      --surface:    #1c1c1f;
+      --card:       #242428;
+      --border:     #2e2e34;
+      --text:       #e8e8ec;
+      --muted:      #8a8a96;
+      --bronze:     #cd7f32;
+      --silver:     #b0b0ba;
+      --gold:       #ffd700;
+      --platinum:   #d0e8f5;
+      --diamond:    #74d7f7;
+      --radius:     8px;
+    }
+
+    /* ─── CARBON FIBER TEXTURE ─── */
+    .carbon {
+      background-color: var(--bg);
+      background-image:
+        repeating-linear-gradient(
+          45deg,
+          rgba(255,255,255,.018) 0px,
+          rgba(255,255,255,.018) 1px,
+          transparent 1px,
+          transparent 50%
+        ),
+        repeating-linear-gradient(
+          -45deg,
+          rgba(255,255,255,.018) 0px,
+          rgba(255,255,255,.018) 1px,
+          transparent 1px,
+          transparent 50%
+        );
+      background-size: 8px 8px;
+    }
+
+    body {
+      font-family: 'Barlow', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ─── SCROLLBAR ─── */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0a0a0c; }
+    ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+    ::-webkit-scrollbar-corner { background: #0a0a0c; }
+    * { scrollbar-width: thin; scrollbar-color: #2a2a30 #0a0a0c; }
+
+    /* ─── NAVBAR ─── */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 32px;
+      height: 62px;
+      background: #0a0a0c;
+      border-bottom: 2px solid var(--orange);
+      box-shadow: 0 4px 24px rgba(0,0,0,.6);
+    }
+    .navbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .navbar-logo {
+      height: 40px;
+      width: auto;
+      display: block;
+    }
+    .navbar-title {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      color: #fff;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .navbar-title span { color: var(--orange); }
+    .navbar-sep {
+      flex: 1;
+    }
+    .navbar-tag {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* ─── HERO STRIP ─── */
+    .hero {
+      padding: 40px 32px 28px;
+      background: linear-gradient(135deg, #0a0a0c 0%, #1a1a1f 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .hero h1 {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 42px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      line-height: 1;
+      color: #fff;
+    }
+    .hero h1 span { color: var(--orange); }
+    .hero p {
+      margin-top: 8px;
+      font-size: 14px;
+      color: var(--muted);
+      letter-spacing: .3px;
+    }
+
+    /* ─── STAT CARDS ─── */
+    .stats-row {
+      display: flex;
+      gap: 16px;
+      padding: 28px 32px;
+      flex-wrap: wrap;
+    }
+    .stat-card {
+      flex: 1 1 140px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--orange);
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .stat-card .stat-value {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--orange);
+      line-height: 1;
+    }
+    .stat-card .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+    }
+
+    /* ─── CONTROLS ─── */
+    .controls {
+      padding: 0 32px 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1 1 260px;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+    input[type="search"], select {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: 'Barlow', sans-serif;
+      font-size: 14px;
+      padding: 10px 14px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="search"] {
+      padding-left: 38px;
+      width: 100%;
+    }
+    input[type="search"]::placeholder { color: var(--muted); }
+    input[type="search"]:focus,
+    select:focus {
+      border-color: var(--orange);
+    }
+    select {
+      cursor: pointer;
+      min-width: 150px;
+    }
+    select option { background: var(--card); }
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .controls-right {
+      margin-left: auto;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .controls-right strong { color: var(--orange); }
+
+    /* ─── AUTOCOMPLETE ─── */
+    .autocomplete-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: #1a1a1f;
+      border: 1px solid var(--orange);
+      border-radius: var(--radius);
+      max-height: 240px;
+      overflow-y: auto;
+      z-index: 200;
+      box-shadow: 0 8px 24px rgba(0,0,0,.6);
+    }
+    .autocomplete-list li {
+      list-style: none;
+      padding: 9px 14px 9px 38px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      transition: background .15s;
+    }
+    .autocomplete-list li:last-child { border-bottom: none; }
+    .autocomplete-list li:hover,
+    .autocomplete-list li.active { background: rgba(245,166,35,.15); color: var(--orange); }
+    .autocomplete-list li mark {
+      background: none;
+      color: var(--orange);
+      font-weight: 700;
+    }
+
+    /* ─── TABLE WRAPPER ─── */
+    .table-wrap {
+      padding: 0 32px 48px;
+      overflow: auto;
+      max-height: calc(100vh - 300px);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+    }
+    thead tr {
+      border-bottom: 2px solid var(--orange);
+    }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #0d0d10;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 14px 12px;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+      text-align: left;
+      transition: color .15s;
+    }
+    th:hover { color: var(--orange); }
+    th.sorted { color: var(--orange); }
+    th .sort-icon {
+      display: inline-block;
+      margin-left: 4px;
+      font-size: 10px;
+      opacity: .4;
+      vertical-align: middle;
+      font-style: normal;
+      font-family: monospace;
+    }
+    th.sorted .sort-icon { opacity: 1; }
+
+    th.num, td.num { text-align: right; }
+
+    tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    tbody tr:hover { background: rgba(245,166,35,.07); }
+    tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
+    tbody tr:nth-child(even):hover { background: rgba(245,166,35,.07); }
+
+    td {
+      padding: 11px 12px;
+      white-space: nowrap;
+    }
+
+    /* ─── PILOT NAME ─── */
+    .td-pilot {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .4px;
+      color: #fff;
+    }
+
+    /* ─── RATING BADGE ─── */
+    .rating-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      border: 1.5px solid;
+    }
+    .rating-badge.r-high  { color: var(--gold);    border-color: var(--gold);    background: rgba(255,215,0,.08); }
+    .rating-badge.r-mid   { color: var(--orange);  border-color: var(--orange);  background: rgba(245,166,35,.08); }
+    .rating-badge.r-low   { color: var(--silver);  border-color: #444;           background: rgba(255,255,255,.04); }
+
+    /* ─── LICENSE BADGE ─── */
+    .lic-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .5px;
+      white-space: nowrap;
+      border: 1px solid;
+    }
+    .lic-B  { color: var(--bronze);  border-color: var(--bronze);  background: rgba(205,127,50,.12); }
+    .lic-S  { color: var(--silver);  border-color: var(--silver);  background: rgba(176,176,186,.1); }
+    .lic-G  { color: var(--gold);    border-color: var(--gold);    background: rgba(255,215,0,.1); }
+    .lic-P  { color: var(--platinum);border-color: var(--platinum);background: rgba(208,232,245,.08); }
+    .lic-D  { color: var(--diamond); border-color: var(--diamond); background: rgba(116,215,247,.1); }
+
+    /* ─── FLAG ─── */
+    .flag-cell {
+      line-height: 1;
+    }
+    .flag-img {
+      width: 20px;
+      height: 15px;
+      border-radius: 2px;
+      object-fit: cover;
+      vertical-align: middle;
+      margin-right: 5px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.12);
+    }
+
+    /* ─── ORANGE NUMS ─── */
+    .wins    { color: var(--gold); font-weight: 600; }
+    .titles  { color: var(--orange); font-weight: 700; }
+    .poles   { color: var(--diamond); font-weight: 600; }
+
+    /* ─── WEIGHT DOTS ─── */
+    .weight-dots { display: flex; gap: 3px; }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+    }
+    .dot.on { background: var(--orange); }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-row td {
+      text-align: center;
+      padding: 60px 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* ─── LOADING ─── */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      padding: 80px 32px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--orange);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── FOOTER ─── */
+    .footer {
+      padding: 20px 32px;
+      background: #0a0a0c;
+      border-top: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .footer a { color: var(--orange); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+    .update-time { display: flex; align-items: center; gap: 6px; }
+    .pulse {
+      width: 8px; height: 8px;
+      background: #4caf50;
+      border-radius: 50%;
+      animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50%      { opacity: .5; transform: scale(1.4); }
+    }
+
+    /* ─── MOBILE CARDS ─── */
+    .cards-wrap { display: none; padding: 0 16px 48px; }
+    .pilot-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .pilot-card:active { background: rgba(245,166,35,.07); border-color: var(--orange); }
+    .card-rank {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 18px; font-weight: 800;
+      color: var(--muted); min-width: 28px; text-align: center;
+    }
+    .card-main { flex: 1; min-width: 0; }
+    .card-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 17px; font-weight: 700;
+      color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .card-sub {
+      display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;
+    }
+    .card-chevron {
+      color: var(--muted); font-size: 18px; flex-shrink: 0;
+    }
+
+    /* ─── PILOT MODAL ─── */
+    .pilot-modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
+      align-items: flex-end; justify-content: center;
+    }
+    .pilot-modal-overlay.open { display: flex; }
+    .pilot-modal {
+      background: #16161b;
+      border: 1px solid var(--orange);
+      border-radius: 16px 16px 0 0;
+      width: 100%; max-width: 540px;
+      padding: 24px 20px 36px;
+      animation: slideUp .25s ease;
+      max-height: 85vh; overflow-y: auto;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle {
+      width: 40px; height: 4px;
+      background: var(--border); border-radius: 2px;
+      margin: 0 auto 20px; display: block;
+    }
+    .modal-header {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+    }
+    .modal-name {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 24px; font-weight: 800; color: #fff; flex: 1;
+    }
+    .modal-close {
+      background: none; border: none; color: var(--muted);
+      font-size: 24px; cursor: pointer; padding: 0 4px; line-height: 1;
+    }
+    .modal-close:hover { color: #fff; }
+    .modal-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    }
+    .modal-stat {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px; padding: 12px 14px;
+    }
+    .modal-stat-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+    }
+    .modal-stat-value {
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 22px; font-weight: 800; color: #fff;
+    }
+    .modal-stat-value.poles   { color: var(--diamond); }
+    .modal-stat-value.wins    { color: var(--gold); }
+    .modal-stat-value.titles  { color: var(--orange); }
+
+    @media (max-width: 700px) {
+      .navbar { padding: 0 16px; }
+      .hero, .stats-row, .controls { padding-left: 16px; padding-right: 16px; }
+      .hero h1 { font-size: 28px; }
+      .table-wrap { display: none; }
+      .cards-wrap { display: block; }
+    }
+  </style>
+</head>
+<body class="carbon">
+
+  <!-- NAVBAR -->
+  <nav class="navbar">
+    <a class="navbar-brand" href="https://www.vorcseries.com.br/" target="_blank">
+      <img class="navbar-logo" src="https://blogger.googleusercontent.com/img/a/AVvXsEj-Xh3sM1FWrEFvWjM9KWcocuE6oaVS1pFIiXBUextERZk08waF6yHgteFMuWmxIus43IyaIMhkYxDENshfdo264exfDyfkHwVQLSpYRpH13YkEb1VcPuPzMHz921OPpYc1Drsy1hyQHGwFiYfZppttRAkGHtaTgEpqgagWFBp1uNaQF5mo9LgzZJ-jBQ=s126" alt="VORC Series" />
+    </a>
+    <div class="navbar-sep"></div>
+    <span class="navbar-tag">Ranking de Pilotos</span>
+  </nav>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Ranking de <span>Pilotos</span></h1>
+    <p>Sistema de carteiras VORC Series &mdash; classificação geral atualizada automaticamente via planilha oficial</p>
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <span>Carregando dados dos pilotos...</span>
+  </div>
+
+  <!-- CONTEÚDO PRINCIPAL (oculto até dados carregarem) -->
+  <div id="main-content" style="display:none">
+
+    <!-- STAT CARDS -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="st-total">—</div>
+        <div class="stat-label">Pilotos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="st-races">—</div>
+        <div class="stat-label">Participações (total)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="st-wins">—</div>
+        <div class="stat-label">Vitórias (total)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="st-titles">—</div>
+        <div class="stat-label">Títulos (total)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="st-countries">—</div>
+        <div class="stat-label">Países</div>
+      </div>
+    </div>
+
+    <!-- CONTROLES -->
+    <div class="controls">
+      <div class="search-wrap">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="search" placeholder="Buscar piloto..." autocomplete="off" />
+        <ul class="autocomplete-list" id="ac-list" style="display:none"></ul>
+      </div>
+      <span class="filter-label">Licença</span>
+      <select id="filter-lic">
+        <option value="">Todas</option>
+        <option value="🅱">🅱 Bronze</option>
+        <option value="🆂">🆂 Silver</option>
+        <option value="🅶">🅶 Gold</option>
+        <option value="🅿">🅿 Platinum</option>
+        <option value="🅳">🅳 Diamond</option>
+      </select>
+      <span class="filter-label">País</span>
+      <select id="filter-country">
+        <option value="">Todos</option>
+      </select>
+      <div class="controls-right">
+        Mostrando <strong id="count-shown">0</strong> pilotos
+      </div>
+    </div>
+
+    <!-- TABELA (desktop) -->
+    <div class="table-wrap">
+      <table id="pilots-table">
+        <thead>
+          <tr>
+            <th data-col="Piloto">Piloto <span class="sort-icon">--</span></th>
+            <th data-col="Rating" class="num sorted">Rating <span class="sort-icon">v</span></th>
+            <th data-col="Licença">Licença <span class="sort-icon">--</span></th>
+            <th data-col="Nac">País <span class="sort-icon">--</span></th>
+            <th data-col="Corridas" class="num">Corridas <span class="sort-icon">--</span></th>
+            <th data-col="Poles" class="num">Poles <span class="sort-icon">--</span></th>
+            <th data-col="Vitórias" class="num">Vitórias <span class="sort-icon">--</span></th>
+            <th data-col="2º Lug" class="num">2º Lugar <span class="sort-icon">--</span></th>
+            <th data-col="3º Lug" class="num">3º Lugar <span class="sort-icon">--</span></th>
+            <th data-col="Pódios" class="num">Pódios <span class="sort-icon">--</span></th>
+            <th data-col="Titulos" class="num">Títulos <span class="sort-icon">--</span></th>
+            <th data-col="Eventos" class="num">Eventos <span class="sort-icon">--</span></th>
+            <th data-col="Peso" class="num">Peso <span class="sort-icon">--</span></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+
+    <!-- CARDS (mobile) -->
+    <div class="cards-wrap" id="cards-wrap"></div>
+  </div>
+
+  <!-- MODAL PILOTO (mobile) -->
+  <div class="pilot-modal-overlay" id="pilot-modal-overlay">
+    <div class="pilot-modal" id="pilot-modal">
+      <span class="modal-handle"></span>
+      <div class="modal-header">
+        <div class="modal-name" id="modal-name"></div>
+        <button class="modal-close" id="modal-close">&#x2715;</button>
+      </div>
+      <div id="modal-badges" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
+      <div class="modal-grid" id="modal-grid"></div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div>
+      &copy; <a href="https://www.vorcseries.com.br/" target="_blank">VORC Series</a> — Liga de Automobilismo Virtual
+    </div>
+    <div class="update-time">
+      <div class="pulse"></div>
+      <span>Dados ao vivo — atualizado em <span id="last-update">—</span></span>
+    </div>
+  </footer>
+
+  <script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQwRbzHhOI6N5j9WsB4p4cbJknNVMTf5eDo3MHNfYlFdSqx3pm4ScrF7_R7gByszQ/pub?gid=1711806708&single=true&output=csv';
+
+    function flagImg(nac) {
+      if (!nac) return '';
+      const code = nac.toLowerCase();
+      return `<img class="flag-img" src="https://flagcdn.com/w40/${code}.png" alt="${nac}" title="${nac}" onerror="this.style.display='none'" />`;
+    }
+
+    const LIC_MAP = {
+      '🅱': { cls: 'lic-B', label: 'Bronze' },
+      '🆂': { cls: 'lic-S', label: 'Silver' },
+      '🅶': { cls: 'lic-G', label: 'Gold' },
+      '🅿': { cls: 'lic-P', label: 'Platinum' },
+      '🅳': { cls: 'lic-D', label: 'Diamond' },
+    };
+
+    let allData = [];
+    let sortCol = 'Rating';
+    let sortDir = -1; // -1 = desc, 1 = asc
+
+    function ratingClass(r) {
+      const n = parseInt(r) || 0;
+      if (n >= 50) return 'r-high';
+      if (n >= 25) return 'r-mid';
+      return 'r-low';
+    }
+
+    function weightDots(w) {
+      const n = parseInt(w) || 1;
+      const max = 3;
+      return `<div class="weight-dots">${[...Array(max)].map((_,i)=>`<div class="dot${i<n?' on':''}"></div>`).join('')}</div>`;
+    }
+
+    function renderRow(d) {
+      const lic = d['Licença'] || '';
+      const licInfo = LIC_MAP[lic] || { cls: '', label: lic };
+      const nac = (d['Nac'] || '').trim();
+      const vitórias = parseInt(d['Vitórias']) || 0;
+      const títulos  = parseInt(d['Titulos'])  || 0;
+      const poles    = parseInt(d['Poles'])    || 0;
+      return `
+        <tr>
+          <td class="td-pilot">${d['Piloto'] || '—'}</td>
+          <td class="num"><span class="rating-badge ${ratingClass(d['Rating'])}">${d['Rating'] ?? '—'}</span></td>
+          <td><span class="lic-badge ${licInfo.cls}">${lic} ${licInfo.label}</span></td>
+          <td class="flag-cell">${flagImg(nac)}<small style="font-size:12px;color:var(--muted);vertical-align:middle">${nac || '—'}</small></td>
+          <td class="num">${d['Corridas'] || 0}</td>
+          <td class="num ${poles ? 'poles' : ''}">${poles || 0}</td>
+          <td class="num ${vitórias ? 'wins' : ''}">${vitórias}</td>
+          <td class="num">${d['2º Lug'] || 0}</td>
+          <td class="num">${d['3º Lug'] || 0}</td>
+          <td class="num">${d['Pódios'] || 0}</td>
+          <td class="num ${títulos ? 'titles' : ''}">${títulos}</td>
+          <td class="num">${d['Eventos'] || 0}</td>
+          <td class="num">${weightDots(d['Peso'])}</td>
+        </tr>`;
+    }
+
+    function getFiltered() {
+      const q     = document.getElementById('search').value.toLowerCase().trim();
+      const lic   = document.getElementById('filter-lic').value;
+      const ctry  = document.getElementById('filter-country').value;
+      return allData.filter(d => {
+        if (q   && !(d['Piloto'] || '').toLowerCase().includes(q)) return false;
+        if (lic  && (d['Licença'] || '').trim() !== lic) return false;
+        if (ctry && (d['Nac'] || '').trim() !== ctry) return false;
+        return true;
+      });
+    }
+
+    function getSorted(data) {
+      return [...data].sort((a, b) => {
+        let va = a[sortCol], vb = b[sortCol];
+        const na = parseFloat(va), nb = parseFloat(vb);
+        if (!isNaN(na) && !isNaN(nb)) return (na - nb) * sortDir;
+        return String(va || '').localeCompare(String(vb || '')) * sortDir;
+      });
+    }
+
+    function render() {
+      const filtered = getSorted(getFiltered());
+      const tbody = document.getElementById('table-body');
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr class="empty-row"><td colspan="13">Nenhum piloto encontrado com os filtros selecionados.</td></tr>`;
+      } else {
+        tbody.innerHTML = filtered.map(renderRow).join('');
+      }
+      document.getElementById('count-shown').textContent = filtered.length;
+      filteredCache = filtered;
+      renderCards(filtered);
+    }
+
+    function renderCards(data) {
+      const wrap = document.getElementById('cards-wrap');
+      if (data.length === 0) {
+        wrap.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted);font-size:14px">Nenhum piloto encontrado.</div>`;
+        return;
+      }
+      wrap.innerHTML = data.map((d, i) => {
+        const lic = d['Licença'] || '';
+        const licInfo = LIC_MAP[lic] || { cls: '', label: lic };
+        const nac = (d['Nac'] || '').trim();
+        return `<div class="pilot-card" data-idx="${i}" onclick="openModal(filteredCache[${i}])">
+          <div class="card-rank">${i + 1}</div>
+          <div class="card-main">
+            <div class="card-name">${d['Piloto'] || '—'}</div>
+            <div class="card-sub">
+              <span class="rating-badge ${ratingClass(d['Rating'])}" style="font-size:13px;padding:2px 7px">${d['Rating'] ?? '—'}</span>
+              <span class="lic-badge ${licInfo.cls}" style="font-size:12px;padding:2px 8px">${lic} ${licInfo.label}</span>
+              <span style="display:inline-flex;align-items:center;gap:4px">${flagImg(nac)}<small style="font-size:11px;color:var(--muted)">${nac}</small></span>
+            </div>
+          </div>
+          <div class="card-chevron">›</div>
+        </div>`;
+      }).join('');
+    }
+
+    let filteredCache = [];
+
+    function openModal(d) {
+      const lic = d['Licença'] || '';
+      const licInfo = LIC_MAP[lic] || { cls: '', label: lic };
+      const nac = (d['Nac'] || '').trim();
+      const vitórias = parseInt(d['Vitórias']) || 0;
+      const títulos  = parseInt(d['Titulos'])  || 0;
+      const poles    = parseInt(d['Poles'])    || 0;
+
+      document.getElementById('modal-name').textContent = d['Piloto'] || '—';
+      document.getElementById('modal-badges').innerHTML =
+        `<span class="rating-badge ${ratingClass(d['Rating'])}">${d['Rating'] ?? '—'}</span>
+         <span class="lic-badge ${licInfo.cls}">${lic} ${licInfo.label}</span>
+         <span style="display:inline-flex;align-items:center;gap:6px">${flagImg(nac)}<span style="font-size:14px;color:var(--muted)">${nac}</span></span>`;
+
+      document.getElementById('modal-grid').innerHTML = [
+        { label: 'Participações', value: d['Corridas'] || 0, cls: '' },
+        { label: 'Poles',         value: poles,             cls: poles    ? 'poles'  : '' },
+        { label: 'Vitórias',      value: vitórias,          cls: vitórias ? 'wins'   : '' },
+        { label: 'Títulos',       value: títulos,           cls: títulos  ? 'titles' : '' },
+        { label: '2º Lugar',      value: d['2º Lug'] || 0,  cls: '' },
+        { label: '3º Lugar',      value: d['3º Lug'] || 0,  cls: '' },
+        { label: 'Pódios',        value: d['Pódios'] || 0,  cls: '' },
+        { label: 'Eventos',       value: d['Eventos'] || 0, cls: '' },
+      ].map(s => `<div class="modal-stat">
+          <div class="modal-stat-label">${s.label}</div>
+          <div class="modal-stat-value ${s.cls}">${s.value}</div>
+        </div>`).join('');
+
+      document.getElementById('pilot-modal-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    document.getElementById('modal-close').addEventListener('click', closeModal);
+    document.getElementById('pilot-modal-overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('pilot-modal-overlay')) closeModal();
+    });
+
+    function closeModal() {
+      document.getElementById('pilot-modal-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function updateStats(data) {
+      const total    = data.length;
+      const races    = data.reduce((s,d) => s + (parseInt(d['Corridas']) || 0), 0);
+      const wins     = data.reduce((s,d) => s + (parseInt(d['Vitórias']) || 0), 0);
+      const titles   = data.reduce((s,d) => s + (parseInt(d['Titulos'])  || 0), 0);
+      const countries = new Set(data.map(d => (d['Nac'] || '').trim()).filter(Boolean)).size;
+      document.getElementById('st-total').textContent    = total.toLocaleString('pt-BR');
+      document.getElementById('st-races').textContent    = races.toLocaleString('pt-BR');
+      document.getElementById('st-wins').textContent     = wins.toLocaleString('pt-BR');
+      document.getElementById('st-titles').textContent   = titles.toLocaleString('pt-BR');
+      document.getElementById('st-countries').textContent = countries;
+    }
+
+    function populateCountries(data) {
+      const sel = document.getElementById('filter-country');
+      const set = [...new Set(data.map(d => (d['Nac'] || '').trim()).filter(Boolean))].sort();
+      set.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.textContent = c;
+        sel.appendChild(opt);
+      });
+    }
+
+    function updateSortHeaders() {
+      document.querySelectorAll('th[data-col]').forEach(th => {
+        const col = th.dataset.col;
+        const icon = th.querySelector('.sort-icon');
+        th.classList.toggle('sorted', col === sortCol);
+        if (col === sortCol) icon.textContent = sortDir === -1 ? 'v' : '^';
+        else icon.textContent = '--';
+      });
+    }
+
+    // ─── SORT CLICK ───
+    document.querySelectorAll('th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (sortCol === col) sortDir *= -1;
+        else { sortCol = col; sortDir = -1; }
+        updateSortHeaders();
+        render();
+      });
+    });
+
+    // ─── FILTER EVENTS ───
+    /* ── Autocomplete ── */
+    const searchEl = document.getElementById('search');
+    const acList   = document.getElementById('ac-list');
+    let acIndex = -1;
+
+    function acShow(items) {
+      if (!items.length) { acList.style.display = 'none'; return; }
+      const q = searchEl.value.trim();
+      const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+      acList.innerHTML = items.slice(0, 8).map((d, i) =>
+        `<li data-name="${d['Piloto']}" class="">${flagImg(d['Nac'])}<span>${d['Piloto'].replace(re, '<mark>$1</mark>')}</span></li>`
+      ).join('');
+      acList.style.display = '';
+      acIndex = -1;
+      acList.querySelectorAll('li').forEach(li => {
+        li.addEventListener('mousedown', e => {
+          e.preventDefault();
+          searchEl.value = li.dataset.name;
+          acList.style.display = 'none';
+          render();
+        });
+      });
+    }
+
+    searchEl.addEventListener('input', () => {
+      const q = searchEl.value.trim().toLowerCase();
+      if (q.length < 2) { acList.style.display = 'none'; render(); return; }
+      const matches = allData.filter(d => (d['Piloto'] || '').toLowerCase().includes(q));
+      acShow(matches);
+      render();
+    });
+
+    searchEl.addEventListener('keydown', e => {
+      const items = acList.querySelectorAll('li');
+      if (!items.length || acList.style.display === 'none') return;
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        acIndex = Math.min(acIndex + 1, items.length - 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        acIndex = Math.max(acIndex - 1, -1);
+      } else if (e.key === 'Enter' && acIndex >= 0) {
+        e.preventDefault();
+        searchEl.value = items[acIndex].dataset.name;
+        acList.style.display = 'none';
+        render();
+        return;
+      } else if (e.key === 'Escape') {
+        acList.style.display = 'none'; return;
+      }
+      items.forEach((li, i) => li.classList.toggle('active', i === acIndex));
+    });
+
+    document.addEventListener('click', e => {
+      if (!searchEl.contains(e.target) && !acList.contains(e.target))
+        acList.style.display = 'none';
+    });
+
+    ['filter-lic','filter-country'].forEach(id => {
+      document.getElementById(id).addEventListener('input', render);
+      document.getElementById(id).addEventListener('change', render);
+    });
+
+    // ─── LOAD DATA ───
+    function loadData() {
+      Papa.parse(CSV_URL, {
+        download: true,
+        header: true,
+        skipEmptyLines: true,
+        complete(results) {
+          allData = results.data.filter(d => (d['Piloto'] || '').trim() !== '');
+          updateStats(allData);
+          populateCountries(allData);
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('main-content').style.display = '';
+          document.getElementById('last-update').textContent = new Date().toLocaleTimeString('pt-BR');
+          render();
+        },
+        error(err) {
+          document.getElementById('loading').innerHTML = `
+            <div style="color:#f55;text-align:center">
+              <p style="font-size:18px;font-weight:700">Erro ao carregar dados</p>
+              <p style="margin-top:8px;font-size:13px">${err.message}</p>
+            </div>`;
+        }
+      });
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
