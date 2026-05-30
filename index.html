@@ -183,7 +183,7 @@
     th .sort-icon { display: inline-block; margin-left: 4px; font-size: 10px; opacity: .4; vertical-align: middle; font-style: normal; font-family: monospace; }
     th.sorted .sort-icon { opacity: 1; }
     th.num, td.num { text-align: right; }
-    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; cursor: pointer; }
     tbody tr:hover { background: rgba(245,166,35,.07); }
     tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
     tbody tr:nth-child(even):hover { background: rgba(245,166,35,.07); }
@@ -649,8 +649,8 @@
       const tit = parseInt(d['Titulos'])  || 0;
       const pol = parseInt(d['Poles'])    || 0;
       const nome = d['Piloto'] || '—';
-      return `<tr>
-        <td class="td-pilot"><a class="pilot-link" href="#piloto/${encodeURIComponent(nome)}">${nome}</a></td>
+      return `<tr onclick="location.hash='#piloto/${encodeURIComponent(nome)}'">
+        <td class="td-pilot">${nome}</td>
         <td class="num">${ratingBadge(d['Rating'])}</td>
         <td><span class="lic-badge ${info.cls}">${lic} ${info.label}</span></td>
         <td class="flag-cell">${flagImg(nac)}<small style="font-size:12px;color:var(--muted);vertical-align:middle">${nac || '—'}</small></td>
