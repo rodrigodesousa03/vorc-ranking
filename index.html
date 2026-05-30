@@ -920,6 +920,7 @@
           <td>${d['Temporada']||'—'}</td>
           <td>${d['Campeonato']}${isTit?' <span style="font-size:12px">🏆</span>':''}</td>
           <td><small style="color:var(--muted)">${d['Tipo']||'—'}</small></td>
+          <td class="num" style="color:var(--muted)">${d['Pos.Esp']||'—'}</td>
           <td class="num">${d['Pos.Final']||'—'}</td>
           <td class="num" style="color:var(--muted)">${d['Rating']||'—'}</td>
           <td class="num">${d['Novo Rating']||'—'}</td>
@@ -935,7 +936,11 @@
           ${d['Tipo'] ? `<div class="hist-card-tipo">${d['Tipo']}</div>` : ''}
           <div class="hist-card-stats">
             <div class="hist-card-stat">
-              <span class="hist-card-stat-lbl">Pos.</span>
+              <span class="hist-card-stat-lbl">Pos Esp.</span>
+              <span class="hist-card-stat-val sm">${d['Pos.Esp']||'—'}</span>
+            </div>
+            <div class="hist-card-stat">
+              <span class="hist-card-stat-lbl">Pos Final</span>
               <span class="hist-card-stat-val">${d['Pos.Final']||'—'}</span>
             </div>
             <div class="hist-card-stat">
@@ -994,7 +999,7 @@
             <table class="hist-table">
               <thead><tr>
                 <th>Temporada</th><th>Campeonato</th><th>Tipo</th>
-                <th class="num">Pos.</th><th class="num">Antes</th><th class="num">Depois</th>
+                <th class="num">Pos Esp.</th><th class="num">Pos Final</th><th class="num">Antes</th><th class="num">Depois</th>
                 <th class="num">Δ</th><th>Licença</th>
               </tr></thead>
               <tbody>${histRows.join('')}</tbody>
@@ -1123,7 +1128,7 @@
               <span class="filter-label">Simulador</span>
               <select id="cf-sim"><option value="">Todos</option>${sims.map(s=>`<option>${s}</option>`).join('')}</select>
               <span class="filter-label">Campeonato</span>
-              <input type="text" id="cf-camp" placeholder="filtrar..." style="min-width:160px" />
+              <input type="text" id="cf-camp" placeholder="campeonato ou piloto..." style="min-width:180px" />
               <div class="controls-right"><strong id="cf-count">${data.length}</strong> títulos</div>
             </div>
             <div id="champs-grid"></div>
@@ -1149,7 +1154,7 @@
         const filtered = data.filter(d =>
           (!anoF  || d._ano === anoF) &&
           (!simF  || (d['Simulador']||'').trim() === simF) &&
-          (!campF || (d['Campeonato']||'').toLowerCase().includes(campF))
+          (!campF || (d['Campeonato']||'').toLowerCase().includes(campF) || (d['Campeão']||'').toLowerCase().includes(campF))
         );
         document.getElementById('cf-count').textContent = filtered.length;
 
