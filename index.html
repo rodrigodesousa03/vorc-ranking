@@ -166,6 +166,14 @@
     .autocomplete-list li:last-child { border-bottom: none; }
     .autocomplete-list li:hover, .autocomplete-list li.active { background: rgba(245,166,35,.15); color: var(--orange); }
     .autocomplete-list li mark { background: none; color: var(--orange); font-weight: 700; }
+    .ac-profile-btn {
+      margin-left: auto; flex-shrink: 0;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700;
+      color: var(--muted); text-decoration: none;
+      padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .ac-profile-btn:hover { color: var(--orange); border-color: var(--orange); background: rgba(245,166,35,.08); }
 
     /* ─── TABLE ─── */
     .table-wrap { padding: 0 32px 48px; overflow: auto; max-height: calc(100vh - 310px); }
@@ -829,12 +837,30 @@
       const q  = searchEl.value.trim();
       const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
       acList.innerHTML = items.slice(0, 8).map(d =>
-        `<li data-name="${d['Piloto']}">${flagImg(d['Nac'])}<span>${d['Piloto'].replace(re,'<mark>$1</mark>')}</span></li>`
+        `<li data-name="${d['Piloto']}">
+          ${flagImg(d['Nac'])}
+          <span>${d['Piloto'].replace(re,'<mark>$1</mark>')}</span>
+          <a class="ac-profile-btn" data-piloto="${encodeURIComponent(d['Piloto'])}" title="Ver perfil">Ver perfil →</a>
+        </li>`
       ).join('');
       acList.style.display = '';
       acIndex = -1;
       acList.querySelectorAll('li').forEach(li => {
-        li.addEventListener('mousedown', e => { e.preventDefault(); searchEl.value = li.dataset.name; acList.style.display = 'none'; render(); });
+        li.addEventListener('mousedown', e => {
+          if (e.target.closest('.ac-profile-btn')) return; // deixa o link tratar
+          e.preventDefault();
+          searchEl.value = li.dataset.name;
+          acList.style.display = 'none';
+          render();
+        });
+      });
+      acList.querySelectorAll('.ac-profile-btn').forEach(btn => {
+        btn.addEventListener('mousedown', e => {
+          e.preventDefault();
+          e.stopPropagation();
+          acList.style.display = 'none';
+          location.hash = '#piloto/' + btn.dataset.piloto;
+        });
       });
     }
 
