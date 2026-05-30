@@ -523,7 +523,7 @@
        CONSTANTS
     ════════════════════════════════════════════ */
     const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQwRbzHhOI6N5j9WsB4p4cbJknNVMTf5eDo3MHNfYlFdSqx3pm4ScrF7_R7gByszQ/pub';
-    const GIDS = { pilotos: '1711806708', historico: '2116738190', campeoes: '1857354493' };
+    const GIDS = { pilotos: '1711806708', historico: '2116738190', campeoes: '1857354493', config: '1681542241' };
     const LIC_MAP = {
       '🅱': { cls: 'lic-B', label: 'Bronze' },
       '🆂': { cls: 'lic-S', label: 'Silver' },
@@ -536,11 +536,60 @@
     /* ════════════════════════════════════════════
        STATE
     ════════════════════════════════════════════ */
-    const dataCache = { pilotos: null, historico: null, campeoes: null };
+    const dataCache = { pilotos: null, historico: null, campeoes: null, licBands: null };
     let sortCol = 'Rating', sortDir = -1;
     let filteredCache = [];
     let ratingChartInstance = null;
     let titulosSortCol = 'total', titulosSortDir = -1;
+
+    const LIC_BAND_COLORS = {
+      'Bronze':   'rgba(205,127,50,0.18)',
+      'Prata':    'rgba(176,176,186,0.14)',
+      'Ouro':     'rgba(255,215,0,0.12)',
+      'Platina':  'rgba(100,180,230,0.18)',
+      'Diamante': 'rgba(116,215,247,0.12)',
+    };
+
+    function loadConfig() {
+      Papa.parse(csvUrl(GIDS.config), {
+        download: true, header: true, skipEmptyLines: true,
+        complete(results) {
+          const rows = results.data
+            .filter(d => LIC_BAND_COLORS[d['Licença']?.trim()])
+            .map(d => ({ label: d['Licença'].trim(), min: parseInt(d['Rating Mímino']) || 0 }))
+            .sort((a, b) => a.min - b.min);
+          dataCache.licBands = rows.map((band, i) => ({
+            label: band.label,
+            min:   band.min,
+            max:   i + 1 < rows.length ? rows[i + 1].min : Infinity,
+            color: LIC_BAND_COLORS[band.label],
+          }));
+        },
+        // falha silenciosa — gráfico simplesmente não mostra as bandas
+      });
+    }
+
+    const licencaBandsPlugin = {
+      id: 'licencaBands',
+      beforeDraw(chart) {
+        if (!dataCache.licBands) return;
+        const { ctx, chartArea: { top, bottom, left, right }, scales: { y } } = chart;
+        dataCache.licBands.forEach(band => {
+          const yMax    = band.max === Infinity ? y.max : band.max;
+          const yTop    = Math.max(top,    Math.min(bottom, y.getPixelForValue(yMax)));
+          const yBottom = Math.max(top,    Math.min(bottom, y.getPixelForValue(band.min)));
+          if (yBottom <= yTop) return;
+          ctx.save();
+          ctx.fillStyle = band.color;
+          ctx.fillRect(left, yTop, right - left, yBottom - yTop);
+          ctx.font = "bold 10px 'Barlow Condensed', sans-serif";
+          ctx.fillStyle = 'rgba(255,255,255,0.25)';
+          ctx.textAlign = 'left';
+          ctx.fillText(band.label.toUpperCase(), left + 6, yTop + 13);
+          ctx.restore();
+        });
+      }
+    };
     let eventosSortCol = 'eventos', eventosSortDir = -1;
 
     /* ════════════════════════════════════════════
@@ -969,6 +1018,7 @@
         const ctx = document.getElementById('rating-chart').getContext('2d');
         ratingChartInstance = new Chart(ctx, {
           type: 'line',
+          plugins: [licencaBandsPlugin],
           data: {
             labels,
             datasets: [{
@@ -1404,6 +1454,7 @@
     Chart.defaults.color = '#8a8a96';
 
     window.addEventListener('hashchange', router);
+    loadConfig();
     loadPilotos();
   </script>
 </body>
