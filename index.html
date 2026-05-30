@@ -289,6 +289,16 @@
     .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #fff; margin-bottom: 16px; }
     .section-title::after { content: ''; display: block; width: 40px; height: 3px; background: var(--orange); margin-top: 6px; }
     .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; height: 280px; }
+    .chart-tooltip {
+      position: absolute; pointer-events: none;
+      background: #1c1c1f; border: 1px solid var(--orange);
+      border-radius: var(--radius); padding: 10px 14px;
+      font-size: 13px; white-space: nowrap; z-index: 10;
+      transform: translate(-50%, calc(-100% - 10px));
+      transition: opacity .1s;
+    }
+    .chart-tooltip-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; color: var(--orange); margin-bottom: 6px; }
+    .chart-tooltip-row { margin-top: 2px; }
     .hist-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); max-height: 420px; }
     .hist-table { width: 100%; border-collapse: collapse; font-size: 13px; }
     .hist-table thead tr { border-bottom: 2px solid var(--orange); }
@@ -1045,15 +1055,29 @@
             plugins: {
               legend: { display: false },
               tooltip: {
-                backgroundColor: '#1c1c1f', borderColor: '#f5a623', borderWidth: 1,
-                titleColor: '#f5a623', bodyColor: '#e8e8ec',
-                callbacks: {
-                  afterBody(items) {
-                    const d = historico[items[0].dataIndex];
-                    const delta = parseFloat(d['Base Δ']) || 0;
-                    const sign  = delta >= 0 ? '+' : '';
-                    return [`Δ ${sign}${delta}`, `Pos. Final: ${d['Pos.Final']||'—'}`];
+                enabled: false,
+                external({ chart, tooltip }) {
+                  let el = chart.canvas.parentNode.querySelector('.chart-tooltip');
+                  if (!el) {
+                    el = document.createElement('div');
+                    el.className = 'chart-tooltip';
+                    chart.canvas.parentNode.appendChild(el);
                   }
+                  if (tooltip.opacity === 0) { el.style.opacity = '0'; return; }
+                  const d     = historico[tooltip.dataPoints[0].dataIndex];
+                  const rating = tooltip.dataPoints[0].raw;
+                  const delta  = parseFloat(d['Base Δ']) || 0;
+                  const sign   = delta > 0 ? '+' : '';
+                  const dClass = delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-zero';
+                  el.innerHTML = `
+                    <div class="chart-tooltip-title">${d['Temporada']} — ${d['Campeonato']}</div>
+                    <div class="chart-tooltip-row" style="color:var(--text)">Rating: ${rating}</div>
+                    <div class="chart-tooltip-row ${dClass}">Δ ${sign}${delta}</div>
+                    <div class="chart-tooltip-row" style="color:var(--muted)">Pos. Final: ${d['Pos.Final']||'—'}</div>
+                  `;
+                  el.style.opacity = '1';
+                  el.style.left = tooltip.caretX + 'px';
+                  el.style.top  = tooltip.caretY + 'px';
                 }
               }
             },
