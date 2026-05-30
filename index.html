@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VORC Series — Ranking de Pilotos</title>
+  <title>VORC Series — Pilotos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -25,38 +26,21 @@
       --gold:       #ffd700;
       --platinum:   #d0e8f5;
       --diamond:    #74d7f7;
+      --green:      #4caf50;
+      --red:        #e53935;
       --radius:     8px;
     }
 
-    /* ─── CARBON FIBER TEXTURE ─── */
     .carbon {
       background-color: var(--bg);
       background-image:
-        repeating-linear-gradient(
-          45deg,
-          rgba(255,255,255,.018) 0px,
-          rgba(255,255,255,.018) 1px,
-          transparent 1px,
-          transparent 50%
-        ),
-        repeating-linear-gradient(
-          -45deg,
-          rgba(255,255,255,.018) 0px,
-          rgba(255,255,255,.018) 1px,
-          transparent 1px,
-          transparent 50%
-        );
+        repeating-linear-gradient(45deg, rgba(255,255,255,.018) 0px, rgba(255,255,255,.018) 1px, transparent 1px, transparent 50%),
+        repeating-linear-gradient(-45deg, rgba(255,255,255,.018) 0px, rgba(255,255,255,.018) 1px, transparent 1px, transparent 50%);
       background-size: 8px 8px;
     }
 
-    body {
-      font-family: 'Barlow', sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-    }
+    body { font-family: 'Barlow', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; }
 
-    /* ─── SCROLLBAR ─── */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #0a0a0c; }
     ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 4px; }
@@ -66,536 +50,399 @@
 
     /* ─── NAVBAR ─── */
     .navbar {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 0 32px;
-      height: 62px;
-      background: #0a0a0c;
-      border-bottom: 2px solid var(--orange);
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 32px; height: 62px;
+      background: #0a0a0c; border-bottom: 2px solid var(--orange);
       box-shadow: 0 4px 24px rgba(0,0,0,.6);
     }
-    .navbar-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      text-decoration: none;
-    }
-    .navbar-logo {
-      height: 40px;
-      width: auto;
-      display: block;
-    }
-    .navbar-title {
+    .navbar-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .navbar-logo { height: 40px; width: auto; display: block; }
+    .navbar-sep { flex: 1; }
+    .nav-links { display: flex; gap: 4px; align-items: center; }
+    .nav-link {
       font-family: 'Barlow Condensed', sans-serif;
-      font-weight: 700;
-      font-size: 20px;
-      color: #fff;
-      letter-spacing: 1px;
-      text-transform: uppercase;
+      font-size: 14px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--muted); text-decoration: none;
+      padding: 6px 14px; border-radius: 6px;
+      transition: color .15s, background .15s;
     }
-    .navbar-title span { color: var(--orange); }
-    .navbar-sep {
-      flex: 1;
+    .nav-link:hover  { color: var(--orange); background: rgba(245,166,35,.08); }
+    .nav-link.active { color: var(--orange); background: rgba(245,166,35,.12); }
+
+    /* ─── HAMBURGER ─── */
+    .hamburger {
+      display: none; flex-direction: column; justify-content: center; gap: 5px;
+      width: 36px; height: 36px; background: none; border: none;
+      cursor: pointer; padding: 4px; border-radius: 6px;
+      transition: background .15s;
     }
-    .navbar-tag {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      color: var(--muted);
+    .hamburger:hover { background: rgba(245,166,35,.1); }
+    .hamburger span {
+      display: block; height: 2px; background: var(--text);
+      border-radius: 2px; transition: transform .25s, opacity .25s, width .25s;
+      transform-origin: center;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    /* ─── MOBILE MENU DROPDOWN ─── */
+    .mobile-menu {
+      display: none; position: fixed;
+      top: 64px; left: 0; right: 0;
+      background: #0d0d10;
+      border-bottom: 2px solid var(--orange);
+      box-shadow: 0 8px 32px rgba(0,0,0,.7);
+      z-index: 99; flex-direction: column; gap: 2px;
+      padding: 8px 12px 12px;
+      animation: slideDown .2s ease;
+    }
+    .mobile-menu.open { display: flex; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .mobile-menu .nav-link {
+      font-size: 16px; padding: 12px 16px;
+      border-radius: 8px; display: block;
     }
 
-    /* ─── HERO STRIP ─── */
+    /* ─── PILOT LINK ─── */
+    .pilot-link { color: inherit; text-decoration: none; transition: color .15s; }
+    .pilot-link:hover { color: var(--orange); }
+
+    /* ─── HERO ─── */
     .hero {
       padding: 40px 32px 28px;
       background: linear-gradient(135deg, #0a0a0c 0%, #1a1a1f 100%);
       border-bottom: 1px solid var(--border);
     }
-    .hero h1 {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 42px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      line-height: 1;
-      color: #fff;
-    }
+    .hero.compact { padding: 24px 32px 20px; }
+    .hero h1 { font-family: 'Barlow Condensed', sans-serif; font-size: 42px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; line-height: 1; color: #fff; }
+    .hero.compact h1 { font-size: 32px; }
     .hero h1 span { color: var(--orange); }
-    .hero p {
-      margin-top: 8px;
-      font-size: 14px;
-      color: var(--muted);
-      letter-spacing: .3px;
-    }
+    .hero p { margin-top: 8px; font-size: 14px; color: var(--muted); }
 
     /* ─── STAT CARDS ─── */
-    .stats-row {
-      display: flex;
-      gap: 16px;
-      padding: 28px 32px;
-      flex-wrap: wrap;
-    }
+    .stats-row { display: flex; gap: 16px; padding: 28px 32px; flex-wrap: wrap; }
     .stat-card {
-      flex: 1 1 140px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-top: 3px solid var(--orange);
-      border-radius: var(--radius);
-      padding: 18px 22px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      flex: 1 1 140px; background: var(--card);
+      border: 1px solid var(--border); border-top: 3px solid var(--orange);
+      border-radius: var(--radius); padding: 18px 22px;
+      display: flex; flex-direction: column; gap: 4px;
     }
-    .stat-card .stat-value {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 36px;
-      font-weight: 800;
-      color: var(--orange);
-      line-height: 1;
-    }
-    .stat-card .stat-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--muted);
-    }
+    .stat-card .stat-value { font-family: 'Barlow Condensed', sans-serif; font-size: 36px; font-weight: 800; color: var(--orange); line-height: 1; }
+    .stat-card .stat-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
 
     /* ─── CONTROLS ─── */
-    .controls {
-      padding: 0 32px 20px;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      align-items: center;
+    .controls { padding: 0 32px 20px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .search-wrap { position: relative; flex: 1 1 260px; }
+    .search-wrap svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+    input[type="search"], input[type="text"], select {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); color: var(--text);
+      font-family: 'Barlow', sans-serif; font-size: 14px;
+      padding: 10px 14px; outline: none; transition: border-color .2s;
     }
-    .search-wrap {
-      position: relative;
-      flex: 1 1 260px;
-    }
-    .search-wrap svg {
-      position: absolute;
-      left: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted);
-      pointer-events: none;
-    }
-    input[type="search"], select {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-      font-family: 'Barlow', sans-serif;
-      font-size: 14px;
-      padding: 10px 14px;
-      outline: none;
-      transition: border-color .2s;
-    }
-    input[type="search"] {
-      padding-left: 38px;
-      width: 100%;
-    }
-    input[type="search"]::placeholder { color: var(--muted); }
-    input[type="search"]:focus,
-    select:focus {
-      border-color: var(--orange);
-    }
-    select {
-      cursor: pointer;
-      min-width: 150px;
-    }
+    input[type="search"] { padding-left: 38px; width: 100%; }
+    input[type="search"]::placeholder, input[type="text"]::placeholder { color: var(--muted); }
+    input[type="search"]:focus, input[type="text"]:focus, select:focus { border-color: var(--orange); }
+    select { cursor: pointer; min-width: 130px; }
     select option { background: var(--card); }
-    .filter-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .controls-right {
-      margin-left: auto;
-      font-size: 13px;
-      color: var(--muted);
-    }
+    .filter-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); white-space: nowrap; }
+    .controls-right { margin-left: auto; font-size: 13px; color: var(--muted); }
     .controls-right strong { color: var(--orange); }
 
     /* ─── AUTOCOMPLETE ─── */
     .autocomplete-list {
-      position: absolute;
-      top: calc(100% + 4px);
-      left: 0; right: 0;
-      background: #1a1a1f;
-      border: 1px solid var(--orange);
-      border-radius: var(--radius);
-      max-height: 240px;
-      overflow-y: auto;
-      z-index: 200;
-      box-shadow: 0 8px 24px rgba(0,0,0,.6);
+      position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+      background: #1a1a1f; border: 1px solid var(--orange);
+      border-radius: var(--radius); max-height: 240px; overflow-y: auto;
+      z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,.6);
     }
     .autocomplete-list li {
-      list-style: none;
-      padding: 9px 14px 9px 38px;
-      font-size: 14px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      border-bottom: 1px solid rgba(255,255,255,.05);
-      transition: background .15s;
+      list-style: none; padding: 9px 14px 9px 38px; font-size: 14px; cursor: pointer;
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,.05); transition: background .15s;
     }
     .autocomplete-list li:last-child { border-bottom: none; }
-    .autocomplete-list li:hover,
-    .autocomplete-list li.active { background: rgba(245,166,35,.15); color: var(--orange); }
-    .autocomplete-list li mark {
-      background: none;
-      color: var(--orange);
-      font-weight: 700;
-    }
+    .autocomplete-list li:hover, .autocomplete-list li.active { background: rgba(245,166,35,.15); color: var(--orange); }
+    .autocomplete-list li mark { background: none; color: var(--orange); font-weight: 700; }
 
-    /* ─── TABLE WRAPPER ─── */
-    .table-wrap {
-      padding: 0 32px 48px;
-      overflow: auto;
-      max-height: calc(100vh - 300px);
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 13.5px;
-    }
-    thead tr {
-      border-bottom: 2px solid var(--orange);
-    }
+    /* ─── TABLE ─── */
+    .table-wrap { padding: 0 32px 48px; overflow: auto; max-height: calc(100vh - 310px); }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    thead tr { border-bottom: 2px solid var(--orange); }
     th {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: #0d0d10;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      color: var(--muted);
-      padding: 14px 12px;
-      white-space: nowrap;
-      cursor: pointer;
-      user-select: none;
-      text-align: left;
-      transition: color .15s;
+      position: sticky; top: 0; z-index: 10; background: #0d0d10;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+      padding: 14px 12px; white-space: nowrap;
+      cursor: pointer; user-select: none; text-align: left; transition: color .15s;
     }
     th:hover { color: var(--orange); }
     th.sorted { color: var(--orange); }
-    th .sort-icon {
-      display: inline-block;
-      margin-left: 4px;
-      font-size: 10px;
-      opacity: .4;
-      vertical-align: middle;
-      font-style: normal;
-      font-family: monospace;
-    }
+    th .sort-icon { display: inline-block; margin-left: 4px; font-size: 10px; opacity: .4; vertical-align: middle; font-style: normal; font-family: monospace; }
     th.sorted .sort-icon { opacity: 1; }
-
     th.num, td.num { text-align: right; }
-
-    tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background .15s;
-    }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
     tbody tr:hover { background: rgba(245,166,35,.07); }
     tbody tr:nth-child(even) { background: rgba(255,255,255,.018); }
     tbody tr:nth-child(even):hover { background: rgba(245,166,35,.07); }
+    td { padding: 11px 12px; white-space: nowrap; }
+    .td-pilot { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; letter-spacing: .4px; color: #fff; }
 
-    td {
-      padding: 11px 12px;
-      white-space: nowrap;
-    }
-
-    /* ─── PILOT NAME ─── */
-    .td-pilot {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: .4px;
-      color: #fff;
-    }
-
-    /* ─── RATING BADGE ─── */
+    /* ─── BADGES ─── */
     .rating-badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 44px;
-      padding: 3px 8px;
-      border-radius: 4px;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 16px;
-      font-weight: 800;
-      border: 1.5px solid;
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 44px; padding: 3px 8px; border-radius: 4px;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; border: 1.5px solid;
     }
-    .rating-badge.r-high  { color: var(--gold);    border-color: var(--gold);    background: rgba(255,215,0,.08); }
-    .rating-badge.r-mid   { color: var(--orange);  border-color: var(--orange);  background: rgba(245,166,35,.08); }
-    .rating-badge.r-low   { color: var(--silver);  border-color: #444;           background: rgba(255,255,255,.04); }
-
-    /* ─── LICENSE BADGE ─── */
+    .r-high { color: var(--gold);    border-color: var(--gold);    background: rgba(255,215,0,.08); }
+    .r-mid  { color: var(--orange);  border-color: var(--orange);  background: rgba(245,166,35,.08); }
+    .r-low  { color: var(--silver);  border-color: #444;           background: rgba(255,255,255,.04); }
     .lic-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-      padding: 3px 10px;
-      border-radius: 20px;
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: .5px;
-      white-space: nowrap;
-      border: 1px solid;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 20px;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
+      letter-spacing: .5px; white-space: nowrap; border: 1px solid;
     }
-    .lic-B  { color: var(--bronze);  border-color: var(--bronze);  background: rgba(205,127,50,.12); }
-    .lic-S  { color: var(--silver);  border-color: var(--silver);  background: rgba(176,176,186,.1); }
-    .lic-G  { color: var(--gold);    border-color: var(--gold);    background: rgba(255,215,0,.1); }
-    .lic-P  { color: var(--platinum);border-color: var(--platinum);background: rgba(208,232,245,.08); }
-    .lic-D  { color: var(--diamond); border-color: var(--diamond); background: rgba(116,215,247,.1); }
+    .lic-B { color: var(--bronze);   border-color: var(--bronze);   background: rgba(205,127,50,.12); }
+    .lic-S { color: var(--silver);   border-color: var(--silver);   background: rgba(176,176,186,.1); }
+    .lic-G { color: var(--gold);     border-color: var(--gold);     background: rgba(255,215,0,.1); }
+    .lic-P { color: var(--platinum); border-color: var(--platinum); background: rgba(208,232,245,.08); }
+    .lic-D { color: var(--diamond);  border-color: var(--diamond);  background: rgba(116,215,247,.1); }
 
-    /* ─── FLAG ─── */
-    .flag-cell {
-      line-height: 1;
-    }
-    .flag-img {
-      width: 20px;
-      height: 15px;
-      border-radius: 2px;
-      object-fit: cover;
-      vertical-align: middle;
-      margin-right: 5px;
-      box-shadow: 0 0 0 1px rgba(255,255,255,.12);
-    }
-
-    /* ─── ORANGE NUMS ─── */
-    .wins    { color: var(--gold); font-weight: 600; }
-    .titles  { color: var(--orange); font-weight: 700; }
-    .poles   { color: var(--diamond); font-weight: 600; }
-
-    /* ─── WEIGHT DOTS ─── */
+    /* ─── MISC ─── */
+    .flag-cell { line-height: 1; }
+    .flag-img { width: 20px; height: 15px; border-radius: 2px; object-fit: cover; vertical-align: middle; margin-right: 5px; box-shadow: 0 0 0 1px rgba(255,255,255,.12); }
+    .wins   { color: var(--gold);    font-weight: 600; }
+    .titles { color: var(--orange);  font-weight: 700; }
+    .poles  { color: var(--diamond); font-weight: 600; }
     .weight-dots { display: flex; gap: 3px; }
-    .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--border);
-    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); }
     .dot.on { background: var(--orange); }
-
-    /* ─── EMPTY STATE ─── */
-    .empty-row td {
-      text-align: center;
-      padding: 60px 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
+    .empty-row td { text-align: center; padding: 60px 0; color: var(--muted); font-size: 14px; }
 
     /* ─── LOADING ─── */
-    #loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      padding: 80px 32px;
-      color: var(--muted);
-      font-size: 14px;
+    #global-loading, .view-loading {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px; padding: 80px 32px;
+      color: var(--muted); font-size: 14px;
     }
-    .spinner {
-      width: 40px; height: 40px;
-      border: 3px solid var(--border);
-      border-top-color: var(--orange);
-      border-radius: 50%;
-      animation: spin .7s linear infinite;
-    }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--orange); border-radius: 50%; animation: spin .7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ─── FOOTER ─── */
     .footer {
-      padding: 20px 32px;
-      background: #0a0a0c;
-      border-top: 1px solid var(--border);
-      font-size: 12px;
-      color: var(--muted);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
+      padding: 20px 32px; background: #0a0a0c; border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
     }
     .footer a { color: var(--orange); text-decoration: none; }
     .footer a:hover { text-decoration: underline; }
     .update-time { display: flex; align-items: center; gap: 6px; }
-    .pulse {
-      width: 8px; height: 8px;
-      background: #4caf50;
-      border-radius: 50%;
-      animation: pulse 2s ease infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity: 1; transform: scale(1); }
-      50%      { opacity: .5; transform: scale(1.4); }
-    }
+    .pulse { width: 8px; height: 8px; background: #4caf50; border-radius: 50%; animation: pulse 2s ease infinite; }
+    @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.5; transform:scale(1.4); } }
 
     /* ─── MOBILE CARDS ─── */
     .cards-wrap { display: none; padding: 0 16px 48px; }
     .pilot-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      transition: border-color .2s, background .2s;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;
+      display: flex; align-items: center; gap: 12px;
+      cursor: pointer; transition: border-color .2s, background .2s;
       -webkit-tap-highlight-color: transparent;
     }
     .pilot-card:active { background: rgba(245,166,35,.07); border-color: var(--orange); }
-    .card-rank {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 18px; font-weight: 800;
-      color: var(--muted); min-width: 28px; text-align: center;
-    }
+    .card-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; color: var(--muted); min-width: 28px; text-align: center; }
     .card-main { flex: 1; min-width: 0; }
-    .card-name {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 17px; font-weight: 700;
-      color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .card-sub {
-      display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap;
-    }
-    .card-chevron {
-      color: var(--muted); font-size: 18px; flex-shrink: 0;
-    }
+    .card-name { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-sub { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+    .card-chevron { color: var(--muted); font-size: 18px; flex-shrink: 0; }
 
-    /* ─── PILOT MODAL ─── */
-    .pilot-modal-overlay {
-      display: none; position: fixed; inset: 0; z-index: 500;
-      background: rgba(0,0,0,.7); backdrop-filter: blur(4px);
-      align-items: flex-end; justify-content: center;
+    /* ══════════════════════════════════════════
+       PILOT PROFILE
+    ══════════════════════════════════════════ */
+    .profile-back { padding: 18px 32px 0; }
+    .back-btn {
+      font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 600;
+      letter-spacing: .5px; text-transform: uppercase; color: var(--muted);
+      text-decoration: none; transition: color .15s;
     }
-    .pilot-modal-overlay.open { display: flex; }
-    .pilot-modal {
-      background: #16161b;
-      border: 1px solid var(--orange);
-      border-radius: 16px 16px 0 0;
-      width: 100%; max-width: 540px;
-      padding: 24px 20px 36px;
-      animation: slideUp .25s ease;
-      max-height: 85vh; overflow-y: auto;
+    .back-btn:hover { color: var(--orange); }
+    .profile-hero {
+      display: flex; align-items: center; gap: 20px;
+      padding: 24px 32px;
+      background: linear-gradient(135deg, #0a0a0c 0%, #1a1a1f 100%);
+      border-bottom: 1px solid var(--border);
     }
-    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-    .modal-handle {
-      width: 40px; height: 4px;
-      background: var(--border); border-radius: 2px;
-      margin: 0 auto 20px; display: block;
-    }
-    .modal-header {
-      display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
-    }
-    .modal-name {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 24px; font-weight: 800; color: #fff; flex: 1;
-    }
-    .modal-close {
-      background: none; border: none; color: var(--muted);
-      font-size: 24px; cursor: pointer; padding: 0 4px; line-height: 1;
-    }
-    .modal-close:hover { color: #fff; }
-    .modal-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-    }
-    .modal-stat {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 8px; padding: 12px 14px;
-    }
-    .modal-stat-label {
-      font-size: 10px; font-weight: 700; letter-spacing: 1px;
-      text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
-    }
-    .modal-stat-value {
-      font-family: 'Barlow Condensed', sans-serif;
-      font-size: 22px; font-weight: 800; color: #fff;
-    }
-    .modal-stat-value.poles   { color: var(--diamond); }
-    .modal-stat-value.wins    { color: var(--gold); }
-    .modal-stat-value.titles  { color: var(--orange); }
+    .profile-hero-flag .flag-img { width: 52px; height: 39px; border-radius: 4px; margin-right: 0; }
+    .profile-hero-name { font-family: 'Barlow Condensed', sans-serif; font-size: 36px; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: #fff; line-height: 1; }
+    .profile-hero-badges { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .profile-stats-row { display: flex; gap: 12px; flex-wrap: wrap; padding: 20px 32px; border-bottom: 1px solid var(--border); }
+    .profile-stat { flex: 1 1 90px; background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--orange); border-radius: var(--radius); padding: 14px 16px; }
+    .profile-stat-val { font-family: 'Barlow Condensed', sans-serif; font-size: 28px; font-weight: 800; color: var(--orange); line-height: 1; }
+    .profile-stat-val.wins   { color: var(--gold); }
+    .profile-stat-val.poles  { color: var(--diamond); }
+    .profile-stat-val.titles { color: var(--orange); }
+    .profile-stat-lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-top: 4px; }
+    .profile-section { padding: 28px 32px; border-bottom: 1px solid var(--border); }
+    .section-title { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #fff; margin-bottom: 16px; }
+    .section-title::after { content: ''; display: block; width: 40px; height: 3px; background: var(--orange); margin-top: 6px; }
+    .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; position: relative; height: 280px; }
+    .hist-table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); max-height: 420px; }
+    .hist-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .hist-table thead tr { border-bottom: 2px solid var(--orange); }
+    .hist-table th { position: sticky; top: 0; background: #0d0d10; font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); padding: 10px 12px; text-align: left; white-space: nowrap; }
+    .hist-table th.num, .hist-table td.num { text-align: right; }
+    .hist-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .hist-table tr:last-child td { border-bottom: none; }
+    .hist-table tbody tr:hover td { background: rgba(245,166,35,.06); }
+    .hist-table .row-titulo td { background: rgba(245,166,35,.05); }
+    .delta-pos  { color: var(--green); font-weight: 700; }
+    .delta-neg  { color: var(--red);   font-weight: 700; }
+    .delta-zero { color: var(--muted); }
+    .titulos-list { display: flex; flex-direction: column; gap: 8px; }
+    .titulo-item { display: flex; align-items: center; gap: 12px; background: var(--card); border: 1px solid var(--border); border-left: 3px solid var(--orange); border-radius: var(--radius); padding: 12px 16px; }
+    .titulo-trophy { font-size: 18px; }
+    .titulo-camp { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; color: #fff; flex: 1; }
+    .titulo-temp { font-size: 12px; color: var(--muted); white-space: nowrap; }
 
+    /* ══════════════════════════════════════════
+       CHAMPIONS VIEW
+    ══════════════════════════════════════════ */
+    .champs-layout { display: flex; gap: 24px; padding: 24px 32px 48px; align-items: flex-start; }
+    .champs-main { flex: 1; min-width: 0; }
+    .champs-sidebar { width: 220px; flex-shrink: 0; }
+    .sidebar-card { background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--orange); border-radius: var(--radius); padding: 16px; position: sticky; top: 78px; }
+    .sidebar-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+    .top-pilot-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+    .top-pilot-row:last-child { border-bottom: none; }
+    .top-pilot-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; color: var(--muted); width: 18px; text-align: center; flex-shrink: 0; }
+    .top-pilot-name { flex: 1; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .top-pilot-count { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; color: var(--orange); }
+    .champ-year-group { margin-bottom: 32px; }
+    .champ-year-header { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; color: var(--orange); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+    .champ-cards-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 12px; }
+    .champ-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; transition: border-color .15s, transform .15s; }
+    .champ-card:hover { border-color: var(--orange); transform: translateY(-2px); }
+    .champ-card-num { font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+    .champ-card-camp { font-family: 'Barlow Condensed', sans-serif; font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
+    .champ-card-sim { font-size: 11px; color: var(--muted); }
+    .champ-card-winner { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700; color: var(--orange); text-decoration: none; margin-top: 4px; }
+    .champ-card-winner:hover { text-decoration: underline; }
+    .champ-card-meta { font-size: 11px; color: var(--muted); }
+
+    /* ══════════════════════════════════════════
+       TITLES VIEW
+    ══════════════════════════════════════════ */
+    .titulos-table-wrap, .eventos-table-wrap { padding: 0 32px 48px; overflow: auto; }
+
+    /* ─── HIST CARDS (mobile) ─── */
+    .hist-cards { display: none; flex-direction: column; gap: 10px; }
+    .hist-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .hist-card--titulo { border-left: 3px solid var(--orange); background: rgba(245,166,35,.04); }
+    .hist-card-header { display: flex; align-items: flex-start; gap: 8px; }
+    .hist-card-temp { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; white-space: nowrap; padding-top: 3px; }
+    .hist-card-camp { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; color: #fff; flex: 1; line-height: 1.25; }
+    .hist-card-tipo { font-size: 12px; color: var(--muted); }
+    .hist-card-stats { display: flex; gap: 20px; align-items: flex-end; }
+    .hist-card-stat { display: flex; flex-direction: column; gap: 2px; }
+    .hist-card-stat-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
+    .hist-card-stat-val { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); line-height: 1; }
+    .hist-card-stat-val.sm { font-size: 14px; color: var(--muted); }
+
+    /* ─── TITULOS / EVENTOS CARDS (mobile) ─── */
+    .titulos-cards, .eventos-cards { display: none; flex-direction: column; gap: 8px; padding: 0 16px 48px; }
+    .titulos-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .titulos-card-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; color: var(--muted); min-width: 28px; text-align: center; flex-shrink: 0; }
+    .titulos-card-main { flex: 1; min-width: 0; }
+    .titulos-card-name { font-family: 'Barlow Condensed', sans-serif; font-size: 17px; font-weight: 700; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .titulos-card-period { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .titulos-card-count { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 800; color: var(--orange); white-space: nowrap; flex-shrink: 0; }
+
+    /* ─── MOBILE ─── */
     @media (max-width: 700px) {
       .navbar { padding: 0 16px; }
+      .nav-links { display: none; }
+      .hamburger { display: flex; }
       .hero, .stats-row, .controls { padding-left: 16px; padding-right: 16px; }
       .hero h1 { font-size: 28px; }
+      .hero.compact h1 { font-size: 22px; }
       .table-wrap { display: none; }
       .cards-wrap { display: block; }
+      .profile-back, .profile-hero, .profile-stats-row, .profile-section { padding-left: 16px; padding-right: 16px; }
+      .profile-hero { flex-wrap: wrap; }
+      .profile-hero-name { font-size: 26px; }
+      .champs-layout { flex-direction: column; padding: 16px; }
+      .champs-sidebar { width: 100%; }
+      .sidebar-card { position: static; }
+      .hist-table-wrap { display: none; }
+      .hist-cards { display: flex; }
+      .titulos-table-wrap { display: none; }
+      .titulos-cards { display: flex; }
+      .eventos-table-wrap { display: none; }
+      .eventos-cards { display: flex; }
     }
   </style>
 </head>
 <body class="carbon">
 
-  <!-- NAVBAR -->
+  <!-- ─── NAVBAR ─── -->
   <nav class="navbar">
-    <a class="navbar-brand" href="https://www.vorcseries.com.br/" target="_blank">
+    <a class="navbar-brand" href="#ranking">
       <img class="navbar-logo" src="https://blogger.googleusercontent.com/img/a/AVvXsEj-Xh3sM1FWrEFvWjM9KWcocuE6oaVS1pFIiXBUextERZk08waF6yHgteFMuWmxIus43IyaIMhkYxDENshfdo264exfDyfkHwVQLSpYRpH13YkEb1VcPuPzMHz921OPpYc1Drsy1hyQHGwFiYfZppttRAkGHtaTgEpqgagWFBp1uNaQF5mo9LgzZJ-jBQ=s126" alt="VORC Series" />
     </a>
     <div class="navbar-sep"></div>
-    <span class="navbar-tag">Ranking de Pilotos</span>
+    <nav class="nav-links">
+      <a class="nav-link" href="#ranking"  data-view="ranking">Ranking</a>
+      <a class="nav-link" href="#campeoes" data-view="campeoes">Campeões</a>
+      <a class="nav-link" href="#titulos"  data-view="titulos">Títulos</a>
+      <a class="nav-link" href="#eventos"  data-view="eventos">Eventos</a>
+    </nav>
+    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </nav>
 
-  <!-- HERO -->
-  <div class="hero">
-    <h1>Ranking de <span>Pilotos</span></h1>
-    <p>Sistema de carteiras VORC Series &mdash; classificação geral atualizada automaticamente via planilha oficial</p>
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" id="mobile-menu" role="navigation">
+    <a class="nav-link" href="#ranking"  data-view="ranking">Ranking</a>
+    <a class="nav-link" href="#campeoes" data-view="campeoes">Campeões</a>
+    <a class="nav-link" href="#titulos"  data-view="titulos">Títulos</a>
+    <a class="nav-link" href="#eventos"  data-view="eventos">Eventos</a>
   </div>
 
-  <!-- LOADING -->
-  <div id="loading">
+  <!-- ─── GLOBAL LOADING ─── -->
+  <div id="global-loading">
     <div class="spinner"></div>
     <span>Carregando dados dos pilotos...</span>
   </div>
 
-  <!-- CONTEÚDO PRINCIPAL (oculto até dados carregarem) -->
-  <div id="main-content" style="display:none">
-
-    <!-- STAT CARDS -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-value" id="st-total">—</div>
-        <div class="stat-label">Pilotos</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="st-races">—</div>
-        <div class="stat-label">Participações (total)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="st-wins">—</div>
-        <div class="stat-label">Vitórias (total)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="st-titles">—</div>
-        <div class="stat-label">Títulos (total)</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-value" id="st-countries">—</div>
-        <div class="stat-label">Países</div>
-      </div>
+  <!-- ══════════════════════════════════════════
+       VIEW: RANKING
+  ══════════════════════════════════════════ -->
+  <div id="view-ranking" style="display:none">
+    <div class="hero">
+      <h1>Ranking de <span>Pilotos</span></h1>
+      <p>Sistema de carteiras VORC Series &mdash; classificação geral atualizada automaticamente via planilha oficial</p>
     </div>
 
-    <!-- CONTROLES -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value" id="st-total">—</div><div class="stat-label">Pilotos</div></div>
+      <div class="stat-card"><div class="stat-value" id="st-races">—</div><div class="stat-label">Participações</div></div>
+      <div class="stat-card"><div class="stat-value" id="st-wins">—</div><div class="stat-label">Vitórias</div></div>
+      <div class="stat-card"><div class="stat-value" id="st-titles">—</div><div class="stat-label">Títulos</div></div>
+      <div class="stat-card"><div class="stat-value" id="st-countries">—</div><div class="stat-label">Países</div></div>
+    </div>
+
     <div class="controls">
       <div class="search-wrap">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -612,15 +459,10 @@
         <option value="🅳">🅳 Diamond</option>
       </select>
       <span class="filter-label">País</span>
-      <select id="filter-country">
-        <option value="">Todos</option>
-      </select>
-      <div class="controls-right">
-        Mostrando <strong id="count-shown">0</strong> pilotos
-      </div>
+      <select id="filter-country"><option value="">Todos</option></select>
+      <div class="controls-right">Mostrando <strong id="count-shown">0</strong> pilotos</div>
     </div>
 
-    <!-- TABELA (desktop) -->
     <div class="table-wrap">
       <table id="pilots-table">
         <thead>
@@ -635,7 +477,7 @@
             <th data-col="2º Lug" class="num">2º Lugar <span class="sort-icon">--</span></th>
             <th data-col="3º Lug" class="num">3º Lugar <span class="sort-icon">--</span></th>
             <th data-col="Pódios" class="num">Pódios <span class="sort-icon">--</span></th>
-            <th data-col="Titulos" class="num">Títulos <span class="sort-icon">--</span></th>
+            <th data-col="Titulos" class="num">🏆 Títulos <span class="sort-icon">--</span></th>
             <th data-col="Eventos" class="num">Eventos <span class="sort-icon">--</span></th>
             <th data-col="Peso" class="num">Peso <span class="sort-icon">--</span></th>
           </tr>
@@ -644,28 +486,32 @@
       </table>
     </div>
 
-    <!-- CARDS (mobile) -->
     <div class="cards-wrap" id="cards-wrap"></div>
   </div>
 
-  <!-- MODAL PILOTO (mobile) -->
-  <div class="pilot-modal-overlay" id="pilot-modal-overlay">
-    <div class="pilot-modal" id="pilot-modal">
-      <span class="modal-handle"></span>
-      <div class="modal-header">
-        <div class="modal-name" id="modal-name"></div>
-        <button class="modal-close" id="modal-close">&#x2715;</button>
-      </div>
-      <div id="modal-badges" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;"></div>
-      <div class="modal-grid" id="modal-grid"></div>
-    </div>
-  </div>
+  <!-- ══════════════════════════════════════════
+       VIEW: PILOTO (conteúdo injetado via JS)
+  ══════════════════════════════════════════ -->
+  <div id="view-piloto" style="display:none"></div>
 
-  <!-- FOOTER -->
+  <!-- ══════════════════════════════════════════
+       VIEW: CAMPEÕES (conteúdo injetado via JS)
+  ══════════════════════════════════════════ -->
+  <div id="view-campeoes" style="display:none"></div>
+
+  <!-- ══════════════════════════════════════════
+       VIEW: TÍTULOS (conteúdo injetado via JS)
+  ══════════════════════════════════════════ -->
+  <div id="view-titulos" style="display:none"></div>
+
+  <!-- ══════════════════════════════════════════
+       VIEW: EVENTOS (conteúdo injetado via JS)
+  ══════════════════════════════════════════ -->
+  <div id="view-eventos" style="display:none"></div>
+
+  <!-- ─── FOOTER ─── -->
   <footer class="footer">
-    <div>
-      &copy; <a href="https://www.vorcseries.com.br/" target="_blank">VORC Series</a> — Liga de Automobilismo Virtual
-    </div>
+    <div>&copy; <a href="https://www.vorcseries.com.br/" target="_blank">VORC Series</a> — Liga de Automobilismo Virtual</div>
     <div class="update-time">
       <div class="pulse"></div>
       <span>Dados ao vivo — atualizado em <span id="last-update">—</span></span>
@@ -673,14 +519,11 @@
   </footer>
 
   <script>
-    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQwRbzHhOI6N5j9WsB4p4cbJknNVMTf5eDo3MHNfYlFdSqx3pm4ScrF7_R7gByszQ/pub?gid=1711806708&single=true&output=csv';
-
-    function flagImg(nac) {
-      if (!nac) return '';
-      const code = nac.toLowerCase();
-      return `<img class="flag-img" src="https://flagcdn.com/w40/${code}.png" alt="${nac}" title="${nac}" onerror="this.style.display='none'" />`;
-    }
-
+    /* ════════════════════════════════════════════
+       CONSTANTS
+    ════════════════════════════════════════════ */
+    const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQwRbzHhOI6N5j9WsB4p4cbJknNVMTf5eDo3MHNfYlFdSqx3pm4ScrF7_R7gByszQ/pub';
+    const GIDS = { pilotos: '1711806708', historico: '2116738190', campeoes: '1857354493' };
     const LIC_MAP = {
       '🅱': { cls: 'lic-B', label: 'Bronze' },
       '🆂': { cls: 'lic-S', label: 'Silver' },
@@ -688,10 +531,30 @@
       '🅿': { cls: 'lic-P', label: 'Platinum' },
       '🅳': { cls: 'lic-D', label: 'Diamond' },
     };
+    const ALL_VIEWS = ['view-ranking', 'view-piloto', 'view-campeoes', 'view-titulos', 'view-eventos'];
 
-    let allData = [];
-    let sortCol = 'Rating';
-    let sortDir = -1; // -1 = desc, 1 = asc
+    /* ════════════════════════════════════════════
+       STATE
+    ════════════════════════════════════════════ */
+    const dataCache = { pilotos: null, historico: null, campeoes: null };
+    let sortCol = 'Rating', sortDir = -1;
+    let filteredCache = [];
+    let ratingChartInstance = null;
+    let titulosSortCol = 'total', titulosSortDir = -1;
+    let eventosSortCol = 'eventos', eventosSortDir = -1;
+
+    /* ════════════════════════════════════════════
+       UTILS
+    ════════════════════════════════════════════ */
+    function csvUrl(gid) {
+      return `${SHEET_BASE}?gid=${gid}&single=true&output=csv`;
+    }
+
+    function flagImg(nac, size) {
+      if (!nac) return '';
+      const w = size || 20, h = size ? Math.round(size * 0.75) : 15;
+      return `<img class="flag-img" src="https://flagcdn.com/w40/${nac.toLowerCase()}.png" alt="${nac}" title="${nac}" style="width:${w}px;height:${h}px" onerror="this.style.display='none'" />`;
+    }
 
     function ratingClass(r) {
       const n = parseInt(r) || 0;
@@ -700,52 +563,124 @@
       return 'r-low';
     }
 
-    function weightDots(w) {
-      const n = parseInt(w) || 1;
-      const max = 3;
-      return `<div class="weight-dots">${[...Array(max)].map((_,i)=>`<div class="dot${i<n?' on':''}"></div>`).join('')}</div>`;
+    function ratingBadge(r) {
+      return `<span class="rating-badge ${ratingClass(r)}">${r ?? '—'}</span>`;
     }
 
+    function licBadge(lic, small) {
+      const info = LIC_MAP[lic] || { cls: '', label: lic || '—' };
+      const style = small ? ' style="font-size:12px;padding:2px 8px"' : '';
+      return `<span class="lic-badge ${info.cls}"${style}>${lic} ${info.label}</span>`;
+    }
+
+    function weightDots(w) {
+      const n = parseInt(w) || 1;
+      return `<div class="weight-dots">${[...Array(3)].map((_,i)=>`<div class="dot${i<n?' on':''}"></div>`).join('')}</div>`;
+    }
+
+    function viewLoading(viewId, msg) {
+      document.getElementById(viewId).innerHTML =
+        `<div class="view-loading"><div class="spinner"></div><span>${msg}</span></div>`;
+    }
+
+    /* ════════════════════════════════════════════
+       ROUTER
+    ════════════════════════════════════════════ */
+    function showView(id) {
+      ALL_VIEWS.forEach(v => { document.getElementById(v).style.display = v === id ? '' : 'none'; });
+    }
+
+    function updateNavActive() {
+      const hash = location.hash || '#ranking';
+      document.querySelectorAll('.nav-link').forEach(a => {
+        const view = a.dataset.view;
+        const active =
+          (view === 'ranking'  && (!location.hash || location.hash === '#ranking')) ||
+          (view === 'campeoes' && hash === '#campeoes') ||
+          (view === 'titulos'  && hash === '#titulos') ||
+          (view === 'eventos'  && hash === '#eventos');
+        a.classList.toggle('active', active);
+      });
+    }
+
+    function router() {
+      if (!dataCache.pilotos) return; // wait until base data is ready
+      const hash = location.hash || '#ranking';
+      updateNavActive();
+
+      if (!location.hash || hash === '#ranking') {
+        showView('view-ranking');
+        render();
+        return;
+      }
+      if (hash.startsWith('#piloto/')) {
+        const nome = decodeURIComponent(hash.slice(8));
+        showView('view-piloto');
+        showPilotoProfile(nome);
+        return;
+      }
+      if (hash === '#campeoes') {
+        showView('view-campeoes');
+        showCampeoes();
+        return;
+      }
+      if (hash === '#titulos') {
+        showView('view-titulos');
+        showTitulos();
+        return;
+      }
+      if (hash === '#eventos') {
+        showView('view-eventos');
+        renderEventos();
+        return;
+      }
+      // fallback
+      location.hash = '#ranking';
+    }
+
+    /* ════════════════════════════════════════════
+       RANKING VIEW
+    ════════════════════════════════════════════ */
     function renderRow(d) {
       const lic = d['Licença'] || '';
-      const licInfo = LIC_MAP[lic] || { cls: '', label: lic };
+      const info = LIC_MAP[lic] || { cls: '', label: lic };
       const nac = (d['Nac'] || '').trim();
-      const vitórias = parseInt(d['Vitórias']) || 0;
-      const títulos  = parseInt(d['Titulos'])  || 0;
-      const poles    = parseInt(d['Poles'])    || 0;
-      return `
-        <tr>
-          <td class="td-pilot">${d['Piloto'] || '—'}</td>
-          <td class="num"><span class="rating-badge ${ratingClass(d['Rating'])}">${d['Rating'] ?? '—'}</span></td>
-          <td><span class="lic-badge ${licInfo.cls}">${lic} ${licInfo.label}</span></td>
-          <td class="flag-cell">${flagImg(nac)}<small style="font-size:12px;color:var(--muted);vertical-align:middle">${nac || '—'}</small></td>
-          <td class="num">${d['Corridas'] || 0}</td>
-          <td class="num ${poles ? 'poles' : ''}">${poles || 0}</td>
-          <td class="num ${vitórias ? 'wins' : ''}">${vitórias}</td>
-          <td class="num">${d['2º Lug'] || 0}</td>
-          <td class="num">${d['3º Lug'] || 0}</td>
-          <td class="num">${d['Pódios'] || 0}</td>
-          <td class="num ${títulos ? 'titles' : ''}">${títulos}</td>
-          <td class="num">${d['Eventos'] || 0}</td>
-          <td class="num">${weightDots(d['Peso'])}</td>
-        </tr>`;
+      const vit = parseInt(d['Vitórias']) || 0;
+      const tit = parseInt(d['Titulos'])  || 0;
+      const pol = parseInt(d['Poles'])    || 0;
+      const nome = d['Piloto'] || '—';
+      return `<tr>
+        <td class="td-pilot"><a class="pilot-link" href="#piloto/${encodeURIComponent(nome)}">${nome}</a></td>
+        <td class="num">${ratingBadge(d['Rating'])}</td>
+        <td><span class="lic-badge ${info.cls}">${lic} ${info.label}</span></td>
+        <td class="flag-cell">${flagImg(nac)}<small style="font-size:12px;color:var(--muted);vertical-align:middle">${nac || '—'}</small></td>
+        <td class="num">${d['Corridas'] || 0}</td>
+        <td class="num ${pol ? 'poles' : ''}">${pol}</td>
+        <td class="num ${vit ? 'wins'  : ''}">${vit}</td>
+        <td class="num">${d['2º Lug'] || 0}</td>
+        <td class="num">${d['3º Lug'] || 0}</td>
+        <td class="num">${d['Pódios'] || 0}</td>
+        <td class="num">${tit ? `<span class="titles" style="font-size:14px">🏆 ${tit}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
+        <td class="num" style="color:var(--muted);font-size:13px">${d['Eventos'] || 0}</td>
+        <td class="num">${weightDots(d['Peso'])}</td>
+      </tr>`;
     }
 
     function getFiltered() {
-      const q     = document.getElementById('search').value.toLowerCase().trim();
-      const lic   = document.getElementById('filter-lic').value;
-      const ctry  = document.getElementById('filter-country').value;
-      return allData.filter(d => {
-        if (q   && !(d['Piloto'] || '').toLowerCase().includes(q)) return false;
-        if (lic  && (d['Licença'] || '').trim() !== lic) return false;
-        if (ctry && (d['Nac'] || '').trim() !== ctry) return false;
+      const q    = document.getElementById('search').value.toLowerCase().trim();
+      const lic  = document.getElementById('filter-lic').value;
+      const ctry = document.getElementById('filter-country').value;
+      return dataCache.pilotos.filter(d => {
+        if (q    && !(d['Piloto']  || '').toLowerCase().includes(q)) return false;
+        if (lic  && (d['Licença'] || '').trim() !== lic)  return false;
+        if (ctry && (d['Nac']     || '').trim() !== ctry) return false;
         return true;
       });
     }
 
     function getSorted(data) {
       return [...data].sort((a, b) => {
-        let va = a[sortCol], vb = b[sortCol];
+        const va = a[sortCol], vb = b[sortCol];
         const na = parseFloat(va), nb = parseFloat(vb);
         if (!isNaN(na) && !isNaN(nb)) return (na - nb) * sortDir;
         return String(va || '').localeCompare(String(vb || '')) * sortDir;
@@ -755,11 +690,9 @@
     function render() {
       const filtered = getSorted(getFiltered());
       const tbody = document.getElementById('table-body');
-      if (filtered.length === 0) {
-        tbody.innerHTML = `<tr class="empty-row"><td colspan="13">Nenhum piloto encontrado com os filtros selecionados.</td></tr>`;
-      } else {
-        tbody.innerHTML = filtered.map(renderRow).join('');
-      }
+      tbody.innerHTML = filtered.length
+        ? filtered.map(renderRow).join('')
+        : `<tr class="empty-row"><td colspan="13">Nenhum piloto encontrado com os filtros selecionados.</td></tr>`;
       document.getElementById('count-shown').textContent = filtered.length;
       filteredCache = filtered;
       renderCards(filtered);
@@ -767,21 +700,22 @@
 
     function renderCards(data) {
       const wrap = document.getElementById('cards-wrap');
-      if (data.length === 0) {
-        wrap.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted);font-size:14px">Nenhum piloto encontrado.</div>`;
+      if (!data.length) {
+        wrap.innerHTML = `<div style="text-align:center;padding:60px 0;color:var(--muted)">Nenhum piloto encontrado.</div>`;
         return;
       }
       wrap.innerHTML = data.map((d, i) => {
-        const lic = d['Licença'] || '';
-        const licInfo = LIC_MAP[lic] || { cls: '', label: lic };
-        const nac = (d['Nac'] || '').trim();
-        return `<div class="pilot-card" data-idx="${i}" onclick="openModal(filteredCache[${i}])">
+        const lic  = d['Licença'] || '';
+        const info = LIC_MAP[lic] || { cls: '', label: lic };
+        const nac  = (d['Nac'] || '').trim();
+        const nome = d['Piloto'] || '—';
+        return `<div class="pilot-card" onclick="location.hash='#piloto/${encodeURIComponent(nome)}'">
           <div class="card-rank">${i + 1}</div>
           <div class="card-main">
-            <div class="card-name">${d['Piloto'] || '—'}</div>
+            <div class="card-name">${nome}</div>
             <div class="card-sub">
               <span class="rating-badge ${ratingClass(d['Rating'])}" style="font-size:13px;padding:2px 7px">${d['Rating'] ?? '—'}</span>
-              <span class="lic-badge ${licInfo.cls}" style="font-size:12px;padding:2px 8px">${lic} ${licInfo.label}</span>
+              <span class="lic-badge ${info.cls}" style="font-size:12px;padding:2px 8px">${lic} ${info.label}</span>
               <span style="display:inline-flex;align-items:center;gap:4px">${flagImg(nac)}<small style="font-size:11px;color:var(--muted)">${nac}</small></span>
             </div>
           </div>
@@ -790,71 +724,19 @@
       }).join('');
     }
 
-    let filteredCache = [];
-
-    function openModal(d) {
-      const lic = d['Licença'] || '';
-      const licInfo = LIC_MAP[lic] || { cls: '', label: lic };
-      const nac = (d['Nac'] || '').trim();
-      const vitórias = parseInt(d['Vitórias']) || 0;
-      const títulos  = parseInt(d['Titulos'])  || 0;
-      const poles    = parseInt(d['Poles'])    || 0;
-
-      document.getElementById('modal-name').textContent = d['Piloto'] || '—';
-      document.getElementById('modal-badges').innerHTML =
-        `<span class="rating-badge ${ratingClass(d['Rating'])}">${d['Rating'] ?? '—'}</span>
-         <span class="lic-badge ${licInfo.cls}">${lic} ${licInfo.label}</span>
-         <span style="display:inline-flex;align-items:center;gap:6px">${flagImg(nac)}<span style="font-size:14px;color:var(--muted)">${nac}</span></span>`;
-
-      document.getElementById('modal-grid').innerHTML = [
-        { label: 'Participações', value: d['Corridas'] || 0, cls: '' },
-        { label: 'Poles',         value: poles,             cls: poles    ? 'poles'  : '' },
-        { label: 'Vitórias',      value: vitórias,          cls: vitórias ? 'wins'   : '' },
-        { label: 'Títulos',       value: títulos,           cls: títulos  ? 'titles' : '' },
-        { label: '2º Lugar',      value: d['2º Lug'] || 0,  cls: '' },
-        { label: '3º Lugar',      value: d['3º Lug'] || 0,  cls: '' },
-        { label: 'Pódios',        value: d['Pódios'] || 0,  cls: '' },
-        { label: 'Eventos',       value: d['Eventos'] || 0, cls: '' },
-      ].map(s => `<div class="modal-stat">
-          <div class="modal-stat-label">${s.label}</div>
-          <div class="modal-stat-value ${s.cls}">${s.value}</div>
-        </div>`).join('');
-
-      document.getElementById('pilot-modal-overlay').classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-
-    document.getElementById('modal-close').addEventListener('click', closeModal);
-    document.getElementById('pilot-modal-overlay').addEventListener('click', e => {
-      if (e.target === document.getElementById('pilot-modal-overlay')) closeModal();
-    });
-
-    function closeModal() {
-      document.getElementById('pilot-modal-overlay').classList.remove('open');
-      document.body.style.overflow = '';
-    }
-
     function updateStats(data) {
-      const total    = data.length;
-      const races    = data.reduce((s,d) => s + (parseInt(d['Corridas']) || 0), 0);
-      const wins     = data.reduce((s,d) => s + (parseInt(d['Vitórias']) || 0), 0);
-      const titles   = data.reduce((s,d) => s + (parseInt(d['Titulos'])  || 0), 0);
-      const countries = new Set(data.map(d => (d['Nac'] || '').trim()).filter(Boolean)).size;
-      document.getElementById('st-total').textContent    = total.toLocaleString('pt-BR');
-      document.getElementById('st-races').textContent    = races.toLocaleString('pt-BR');
-      document.getElementById('st-wins').textContent     = wins.toLocaleString('pt-BR');
-      document.getElementById('st-titles').textContent   = titles.toLocaleString('pt-BR');
-      document.getElementById('st-countries').textContent = countries;
+      const countries = new Set(data.map(d => (d['Nac'] || '').trim()).filter(Boolean));
+      document.getElementById('st-total').textContent     = data.length.toLocaleString('pt-BR');
+      document.getElementById('st-races').textContent     = data.reduce((s,d)=>s+(parseInt(d['Corridas'])||0),0).toLocaleString('pt-BR');
+      document.getElementById('st-wins').textContent      = data.reduce((s,d)=>s+(parseInt(d['Vitórias'])||0),0).toLocaleString('pt-BR');
+      document.getElementById('st-titles').textContent    = data.reduce((s,d)=>s+(parseInt(d['Titulos']) ||0),0).toLocaleString('pt-BR');
+      document.getElementById('st-countries').textContent = countries.size;
     }
 
     function populateCountries(data) {
       const sel = document.getElementById('filter-country');
-      const set = [...new Set(data.map(d => (d['Nac'] || '').trim()).filter(Boolean))].sort();
-      set.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c;
-        opt.textContent = c;
-        sel.appendChild(opt);
+      [...new Set(data.map(d=>(d['Nac']||'').trim()).filter(Boolean))].sort().forEach(c => {
+        const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o);
       });
     }
 
@@ -863,112 +745,632 @@
         const col = th.dataset.col;
         const icon = th.querySelector('.sort-icon');
         th.classList.toggle('sorted', col === sortCol);
-        if (col === sortCol) icon.textContent = sortDir === -1 ? 'v' : '^';
-        else icon.textContent = '--';
+        icon.textContent = col === sortCol ? (sortDir === -1 ? 'v' : '^') : '--';
       });
     }
 
-    // ─── SORT CLICK ───
+    /* sort headers */
     document.querySelectorAll('th[data-col]').forEach(th => {
       th.addEventListener('click', () => {
         const col = th.dataset.col;
-        if (sortCol === col) sortDir *= -1;
-        else { sortCol = col; sortDir = -1; }
+        if (sortCol === col) sortDir *= -1; else { sortCol = col; sortDir = -1; }
         updateSortHeaders();
         render();
       });
     });
 
-    // ─── FILTER EVENTS ───
-    /* ── Autocomplete ── */
+    /* autocomplete */
     const searchEl = document.getElementById('search');
     const acList   = document.getElementById('ac-list');
     let acIndex = -1;
 
     function acShow(items) {
       if (!items.length) { acList.style.display = 'none'; return; }
-      const q = searchEl.value.trim();
+      const q  = searchEl.value.trim();
       const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
-      acList.innerHTML = items.slice(0, 8).map((d, i) =>
-        `<li data-name="${d['Piloto']}" class="">${flagImg(d['Nac'])}<span>${d['Piloto'].replace(re, '<mark>$1</mark>')}</span></li>`
+      acList.innerHTML = items.slice(0, 8).map(d =>
+        `<li data-name="${d['Piloto']}">${flagImg(d['Nac'])}<span>${d['Piloto'].replace(re,'<mark>$1</mark>')}</span></li>`
       ).join('');
       acList.style.display = '';
       acIndex = -1;
       acList.querySelectorAll('li').forEach(li => {
-        li.addEventListener('mousedown', e => {
-          e.preventDefault();
-          searchEl.value = li.dataset.name;
-          acList.style.display = 'none';
-          render();
-        });
+        li.addEventListener('mousedown', e => { e.preventDefault(); searchEl.value = li.dataset.name; acList.style.display = 'none'; render(); });
       });
     }
 
     searchEl.addEventListener('input', () => {
       const q = searchEl.value.trim().toLowerCase();
       if (q.length < 2) { acList.style.display = 'none'; render(); return; }
-      const matches = allData.filter(d => (d['Piloto'] || '').toLowerCase().includes(q));
-      acShow(matches);
+      acShow(dataCache.pilotos.filter(d=>(d['Piloto']||'').toLowerCase().includes(q)));
       render();
     });
-
     searchEl.addEventListener('keydown', e => {
       const items = acList.querySelectorAll('li');
       if (!items.length || acList.style.display === 'none') return;
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        acIndex = Math.min(acIndex + 1, items.length - 1);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        acIndex = Math.max(acIndex - 1, -1);
-      } else if (e.key === 'Enter' && acIndex >= 0) {
-        e.preventDefault();
-        searchEl.value = items[acIndex].dataset.name;
-        acList.style.display = 'none';
-        render();
-        return;
-      } else if (e.key === 'Escape') {
-        acList.style.display = 'none'; return;
-      }
-      items.forEach((li, i) => li.classList.toggle('active', i === acIndex));
+      if (e.key === 'ArrowDown') { e.preventDefault(); acIndex = Math.min(acIndex+1, items.length-1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); acIndex = Math.max(acIndex-1, -1); }
+      else if (e.key === 'Enter' && acIndex >= 0) { e.preventDefault(); searchEl.value = items[acIndex].dataset.name; acList.style.display='none'; render(); return; }
+      else if (e.key === 'Escape') { acList.style.display='none'; return; }
+      items.forEach((li,i) => li.classList.toggle('active', i===acIndex));
     });
+    document.addEventListener('click', e => { if (!searchEl.contains(e.target) && !acList.contains(e.target)) acList.style.display='none'; });
+    ['filter-lic','filter-country'].forEach(id => document.getElementById(id).addEventListener('change', render));
 
-    document.addEventListener('click', e => {
-      if (!searchEl.contains(e.target) && !acList.contains(e.target))
-        acList.style.display = 'none';
-    });
-
-    ['filter-lic','filter-country'].forEach(id => {
-      document.getElementById(id).addEventListener('input', render);
-      document.getElementById(id).addEventListener('change', render);
-    });
-
-    // ─── LOAD DATA ───
-    function loadData() {
-      Papa.parse(CSV_URL, {
-        download: true,
-        header: true,
-        skipEmptyLines: true,
+    /* load pilotos */
+    function loadPilotos() {
+      Papa.parse(csvUrl(GIDS.pilotos), {
+        download: true, header: true, skipEmptyLines: true,
         complete(results) {
-          allData = results.data.filter(d => (d['Piloto'] || '').trim() !== '');
-          updateStats(allData);
-          populateCountries(allData);
-          document.getElementById('loading').style.display = 'none';
-          document.getElementById('main-content').style.display = '';
+          dataCache.pilotos = results.data.filter(d => (d['Piloto']||'').trim() !== '');
+          updateStats(dataCache.pilotos);
+          populateCountries(dataCache.pilotos);
+          document.getElementById('global-loading').style.display = 'none';
           document.getElementById('last-update').textContent = new Date().toLocaleTimeString('pt-BR');
-          render();
+          router();
         },
         error(err) {
-          document.getElementById('loading').innerHTML = `
-            <div style="color:#f55;text-align:center">
-              <p style="font-size:18px;font-weight:700">Erro ao carregar dados</p>
-              <p style="margin-top:8px;font-size:13px">${err.message}</p>
-            </div>`;
+          document.getElementById('global-loading').innerHTML =
+            `<div style="color:#f55;text-align:center"><p style="font-size:18px;font-weight:700">Erro ao carregar dados</p><p style="margin-top:8px;font-size:13px">${err.message}</p></div>`;
         }
       });
     }
 
-    loadData();
+    /* ════════════════════════════════════════════
+       PILOT PROFILE VIEW
+    ════════════════════════════════════════════ */
+    function showPilotoProfile(nome) {
+      if (dataCache.historico) { renderPilotoProfile(nome); return; }
+      viewLoading('view-piloto', 'Carregando histórico...');
+      Papa.parse(csvUrl(GIDS.historico), {
+        download: true, header: true, skipEmptyLines: true,
+        complete(results) {
+          dataCache.historico = results.data.filter(d => d['Piloto']?.trim() && d['Campeonato']?.trim());
+          renderPilotoProfile(nome);
+        },
+        error(err) {
+          document.getElementById('view-piloto').innerHTML =
+            `<div class="view-loading" style="color:var(--red)">Erro ao carregar histórico: ${err.message}</div>`;
+        }
+      });
+    }
+
+    function renderPilotoProfile(nome) {
+      // Destroy old chart before replacing innerHTML
+      if (ratingChartInstance) { ratingChartInstance.destroy(); ratingChartInstance = null; }
+
+      const historico   = dataCache.historico.filter(d => d['Piloto']?.trim() === nome);
+      const pilotoBase  = dataCache.pilotos?.find(d => d['Piloto']?.trim() === nome);
+      const nac         = (pilotoBase?.['Nac'] || historico[0]?.['Nac'] || '').trim();
+      const licAtual    = pilotoBase?.['Licença'] || historico[historico.length-1]?.['N.Licença'] || '';
+      const ratingAtual = pilotoBase?.['Rating']  || historico[historico.length-1]?.['Novo Rating'] || '—';
+      const licInfo     = LIC_MAP[licAtual] || { cls: '', label: licAtual };
+      const titulos     = historico.filter(d => String(d['Título']).trim() === '1');
+
+      const statsHtml = pilotoBase ? `
+        <div class="profile-stats-row">
+          <div class="profile-stat"><div class="profile-stat-val">${pilotoBase['Corridas']||0}</div><div class="profile-stat-lbl">Corridas</div></div>
+          <div class="profile-stat"><div class="profile-stat-val wins">${pilotoBase['Vitórias']||0}</div><div class="profile-stat-lbl">Vitórias</div></div>
+          <div class="profile-stat"><div class="profile-stat-val">${pilotoBase['Pódios']||0}</div><div class="profile-stat-lbl">Pódios</div></div>
+          <div class="profile-stat"><div class="profile-stat-val poles">${pilotoBase['Poles']||0}</div><div class="profile-stat-lbl">Poles</div></div>
+          <div class="profile-stat"><div class="profile-stat-val titles">${pilotoBase['Titulos']||0}</div><div class="profile-stat-lbl">Títulos</div></div>
+          <div class="profile-stat"><div class="profile-stat-val">${pilotoBase['Eventos']||0}</div><div class="profile-stat-lbl">Eventos</div></div>
+        </div>` : '';
+
+      const histRows = [];
+      const histCardItems = [];
+
+      historico.forEach(d => {
+        const delta    = parseFloat(d['Base Δ']) || 0;
+        const dClass   = delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-zero';
+        const dStr     = delta > 0 ? `+${delta}` : String(delta || 0);
+        const licN     = d['N.Licença'] || '';
+        const licNInfo = LIC_MAP[licN] || { cls: '', label: licN };
+        const isTit    = String(d['Título']).trim() === '1';
+
+        histRows.push(`<tr class="${isTit ? 'row-titulo' : ''}">
+          <td>${d['Temporada']||'—'}</td>
+          <td>${d['Campeonato']}${isTit?' <span style="font-size:12px">🏆</span>':''}</td>
+          <td><small style="color:var(--muted)">${d['Tipo']||'—'}</small></td>
+          <td class="num">${d['Pos.Final']||'—'}</td>
+          <td class="num" style="color:var(--muted)">${d['Rating']||'—'}</td>
+          <td class="num">${d['Novo Rating']||'—'}</td>
+          <td class="num"><span class="${dClass}">${dStr}</span></td>
+          <td>${licN ? `<span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licN} ${licNInfo.label}</span>` : '—'}</td>
+        </tr>`);
+
+        histCardItems.push(`<div class="hist-card ${isTit ? 'hist-card--titulo' : ''}">
+          <div class="hist-card-header">
+            <span class="hist-card-temp">${d['Temporada']||'—'}</span>
+            <span class="hist-card-camp">${d['Campeonato']}${isTit?' 🏆':''}</span>
+          </div>
+          ${d['Tipo'] ? `<div class="hist-card-tipo">${d['Tipo']}</div>` : ''}
+          <div class="hist-card-stats">
+            <div class="hist-card-stat">
+              <span class="hist-card-stat-lbl">Pos.</span>
+              <span class="hist-card-stat-val">${d['Pos.Final']||'—'}</span>
+            </div>
+            <div class="hist-card-stat">
+              <span class="hist-card-stat-lbl">Rating</span>
+              <span class="hist-card-stat-val sm">${d['Rating']||'—'} → ${d['Novo Rating']||'—'}</span>
+            </div>
+            <div class="hist-card-stat">
+              <span class="hist-card-stat-lbl">Δ</span>
+              <span class="hist-card-stat-val ${dClass}">${dStr}</span>
+            </div>
+          </div>
+          ${licN ? `<div><span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licN} ${licNInfo.label}</span></div>` : ''}
+        </div>`);
+      });
+
+      const titulosHtml = titulos.length ? `
+        <div class="profile-section">
+          <div class="section-title">Títulos Conquistados</div>
+          <div class="titulos-list">
+            ${titulos.map(d=>`
+              <div class="titulo-item">
+                <span class="titulo-trophy">🏆</span>
+                <span class="titulo-camp">${d['Campeonato']}</span>
+                <span class="titulo-temp">Temporada ${d['Temporada']}</span>
+              </div>`).join('')}
+          </div>
+        </div>` : '';
+
+      const view = document.getElementById('view-piloto');
+      view.innerHTML = `
+        <div class="profile-back">
+          <a class="back-btn" href="#ranking">← Voltar ao Ranking</a>
+        </div>
+        <div class="profile-hero">
+          ${nac ? `<div class="profile-hero-flag">${flagImg(nac, 52)}</div>` : ''}
+          <div>
+            <div class="profile-hero-name">${nome}</div>
+            <div class="profile-hero-badges">
+              ${ratingBadge(ratingAtual)}
+              ${licBadge(licAtual)}
+              ${nac ? `<span style="display:inline-flex;align-items:center;gap:6px">${flagImg(nac)}<span style="font-size:13px;color:var(--muted)">${nac}</span></span>` : ''}
+            </div>
+          </div>
+        </div>
+
+        ${statsHtml}
+
+        ${historico.length ? `
+        <div class="profile-section">
+          <div class="section-title">Evolução do Rating</div>
+          <div class="chart-container"><canvas id="rating-chart"></canvas></div>
+        </div>
+        <div class="profile-section">
+          <div class="section-title">Histórico de Campeonatos</div>
+          <div class="hist-table-wrap">
+            <table class="hist-table">
+              <thead><tr>
+                <th>Temporada</th><th>Campeonato</th><th>Tipo</th>
+                <th class="num">Pos.</th><th class="num">Antes</th><th class="num">Depois</th>
+                <th class="num">Δ</th><th>Licença</th>
+              </tr></thead>
+              <tbody>${histRows.join('')}</tbody>
+            </table>
+          </div>
+          <div class="hist-cards">${histCardItems.join('')}</div>
+        </div>` : `<div style="text-align:center;padding:60px;color:var(--muted)">Nenhum histórico encontrado para este piloto.</div>`}
+
+        ${titulosHtml}
+      `;
+
+      // Build chart after innerHTML is set
+      if (historico.length) {
+        const labels       = historico.map(d => `${d['Temporada']} — ${d['Campeonato']}`);
+        const ratings      = historico.map(d => parseFloat(d['Novo Rating']) || null);
+        const pointColors  = historico.map(d =>
+          d['N.Licença'] && d['Licença'] && d['N.Licença'].trim() !== d['Licença'].trim()
+            ? '#4caf50' : '#f5a623'
+        );
+
+        const ctx = document.getElementById('rating-chart').getContext('2d');
+        ratingChartInstance = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [{
+              label: 'Rating',
+              data: ratings,
+              borderColor: '#f5a623',
+              backgroundColor: 'rgba(245,166,35,0.08)',
+              pointBackgroundColor: pointColors,
+              pointBorderColor: pointColors,
+              pointRadius: historico.length > 40 ? 3 : 5,
+              pointHoverRadius: 7,
+              tension: 0.3,
+              fill: true,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#1c1c1f', borderColor: '#f5a623', borderWidth: 1,
+                titleColor: '#f5a623', bodyColor: '#e8e8ec',
+                callbacks: {
+                  afterBody(items) {
+                    const d = historico[items[0].dataIndex];
+                    const delta = parseFloat(d['Base Δ']) || 0;
+                    const sign  = delta >= 0 ? '+' : '';
+                    return [`Δ ${sign}${delta}`, `Pos. Final: ${d['Pos.Final']||'—'}`];
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: { color: '#8a8a96', maxRotation: 45, autoSkip: true, maxTicksLimit: 14, font: { family: "'Barlow Condensed', sans-serif", size: 11 } },
+                grid: { color: '#2e2e34' }
+              },
+              y: {
+                ticks: { color: '#8a8a96', font: { family: "'Barlow Condensed', sans-serif" } },
+                grid: { color: '#2e2e34' }
+              }
+            }
+          }
+        });
+      }
+    }
+
+    /* ════════════════════════════════════════════
+       CHAMPIONS VIEW
+    ════════════════════════════════════════════ */
+    function showCampeoes() {
+      if (dataCache.campeoes) { renderCampeoes(); return; }
+      viewLoading('view-campeoes', 'Carregando campeões...');
+      loadCampeoesData(renderCampeoes);
+    }
+
+    function loadCampeoesData(cb) {
+      Papa.parse(csvUrl(GIDS.campeoes), {
+        download: true, header: true, skipEmptyLines: true,
+        complete(results) {
+          let lastAno = '', lastTemp = '';
+          const filled = results.data.map(d => {
+            if (d['Ano']?.trim())   lastAno  = d['Ano'].trim();
+            if (d['Temp.']?.trim()) lastTemp = d['Temp.'].trim();
+            return { ...d, _ano: lastAno, _temp: lastTemp };
+          });
+          dataCache.campeoes = filled.filter(d => d['Campeão']?.trim());
+          cb();
+        },
+        error(err) {
+          ['view-campeoes','view-titulos'].forEach(v => {
+            if (document.getElementById(v).style.display !== 'none')
+              document.getElementById(v).innerHTML = `<div class="view-loading" style="color:var(--red)">Erro: ${err.message}</div>`;
+          });
+        }
+      });
+    }
+
+    function renderCampeoes() {
+      const data = dataCache.campeoes;
+
+      const anos = [...new Set(data.map(d=>d._ano))].sort((a,b)=>b.localeCompare(a));
+      const sims = [...new Set(data.map(d=>(d['Simulador']||'').trim()).filter(Boolean))].sort();
+
+      // top pilots by title count
+      const titleCount = {};
+      data.forEach(d => { const c = d['Campeão']?.trim(); if (c) titleCount[c] = (titleCount[c]||0)+1; });
+      const topPilots = Object.entries(titleCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+      const view = document.getElementById('view-campeoes');
+      view.innerHTML = `
+        <div class="hero compact">
+          <h1>Hall da <span>Fama</span></h1>
+          <p>Todos os campeões da VORC Series desde 2015</p>
+        </div>
+        <div class="champs-layout">
+          <div class="champs-main">
+            <div class="controls" style="padding-top:0;padding-left:0;padding-right:0">
+              <span class="filter-label">Ano</span>
+              <select id="cf-ano"><option value="">Todos</option>${anos.map(a=>`<option>${a}</option>`).join('')}</select>
+              <span class="filter-label">Simulador</span>
+              <select id="cf-sim"><option value="">Todos</option>${sims.map(s=>`<option>${s}</option>`).join('')}</select>
+              <span class="filter-label">Campeonato</span>
+              <input type="text" id="cf-camp" placeholder="filtrar..." style="min-width:160px" />
+              <div class="controls-right"><strong id="cf-count">${data.length}</strong> títulos</div>
+            </div>
+            <div id="champs-grid"></div>
+          </div>
+          <div class="champs-sidebar">
+            <div class="sidebar-card">
+              <div class="sidebar-title">Mais Títulos</div>
+              ${topPilots.map(([p,n],i)=>`
+                <div class="top-pilot-row">
+                  <span class="top-pilot-rank">${i+1}</span>
+                  <a class="top-pilot-name pilot-link" href="#piloto/${encodeURIComponent(p)}">${p}</a>
+                  <span class="top-pilot-count">${n}</span>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+
+      function filterAndRender() {
+        const anoF  = document.getElementById('cf-ano').value;
+        const simF  = document.getElementById('cf-sim').value;
+        const campF = document.getElementById('cf-camp').value.toLowerCase().trim();
+        const filtered = data.filter(d =>
+          (!anoF  || d._ano === anoF) &&
+          (!simF  || (d['Simulador']||'').trim() === simF) &&
+          (!campF || (d['Campeonato']||'').toLowerCase().includes(campF))
+        );
+        document.getElementById('cf-count').textContent = filtered.length;
+
+        const byTemp = {};
+        filtered.forEach(d => {
+          const key = `${d._ano} — ${d._temp}`;
+          if (!byTemp[key]) byTemp[key] = [];
+          byTemp[key].push(d);
+        });
+        const sortedTemps = Object.keys(byTemp).sort((a, b) => b.localeCompare(a));
+
+        document.getElementById('champs-grid').innerHTML = sortedTemps.length
+          ? sortedTemps.map(temp => `
+              <div class="champ-year-group">
+                <div class="champ-year-header">${temp}</div>
+                <div class="champ-cards-row">
+                  ${byTemp[temp].map(d => {
+                    const campeao = d['Campeão']?.trim() || '—';
+                    const vencedores = campeao.split(' / ').map(n => n.trim()).filter(Boolean);
+                    const winnersHtml = vencedores.map(n =>
+                      `<a class="champ-card-winner pilot-link" href="#piloto/${encodeURIComponent(n)}">🏆 ${n}</a>`
+                    ).join('');
+                    return `<div class="champ-card">
+                      ${d['Corridas'] ? `<div class="champ-card-num">${parseInt(d['Corridas']) === 1 ? 'Evento' : 'Campeonato'}</div>` : ''}
+                      <div class="champ-card-camp">${d['Campeonato']||'—'}</div>
+                      <div class="champ-card-sim">${d['Simulador']||''}</div>
+                      ${winnersHtml}
+                      ${d['Corridas'] ? `<div class="champ-card-meta">${d['Corridas']} corrida${parseInt(d['Corridas'])===1?'':'s'}</div>` : ''}
+                    </div>`;
+                  }).join('')}
+                </div>
+              </div>`).join('')
+          : '<div style="text-align:center;padding:60px;color:var(--muted)">Nenhum resultado para os filtros selecionados.</div>';
+      }
+
+      filterAndRender();
+      document.getElementById('cf-ano').addEventListener('change', filterAndRender);
+      document.getElementById('cf-sim').addEventListener('change', filterAndRender);
+      document.getElementById('cf-camp').addEventListener('input', filterAndRender);
+    }
+
+    /* ════════════════════════════════════════════
+       TITLES RANKING VIEW
+    ════════════════════════════════════════════ */
+    function showTitulos() {
+      if (dataCache.campeoes) { renderTitulos(); return; }
+      viewLoading('view-titulos', 'Carregando dados...');
+      loadCampeoesData(renderTitulos);
+    }
+
+    function renderTitulos() {
+      const data = dataCache.campeoes;
+
+      // group by pilot
+      const byPilot = {};
+      data.forEach(d => {
+        const p = d['Campeão']?.trim();
+        if (!p) return;
+        if (!byPilot[p]) byPilot[p] = { nome: p, total: 0, primeiroAno: d._ano, ultimoAno: d._ano };
+        byPilot[p].total++;
+        if (d._ano < byPilot[p].primeiroAno) byPilot[p].primeiroAno = d._ano;
+        if (d._ano > byPilot[p].ultimoAno)   byPilot[p].ultimoAno   = d._ano;
+      });
+      const rows = Object.values(byPilot);
+
+      const view = document.getElementById('view-titulos');
+      view.innerHTML = `
+        <div class="hero compact">
+          <h1>Ranking de <span>Títulos</span></h1>
+          <p>Pilotos ordenados por número de campeonatos conquistados</p>
+        </div>
+        <div class="titulos-table-wrap">
+          <table id="titulos-table">
+            <thead><tr>
+              <th style="width:50px">#</th>
+              <th data-tcol="nome">Piloto <span class="sort-icon">--</span></th>
+              <th data-tcol="total"       class="num sorted">Títulos <span class="sort-icon">v</span></th>
+              <th data-tcol="primeiroAno" class="num">Primeiro Título <span class="sort-icon">--</span></th>
+              <th data-tcol="ultimoAno"   class="num">Último Título <span class="sort-icon">--</span></th>
+            </tr></thead>
+            <tbody id="titulos-body"></tbody>
+          </table>
+        </div>
+        <div class="titulos-cards" id="titulos-cards"></div>
+      `;
+
+      function renderTable() {
+        const sorted = [...rows].sort((a,b) => {
+          const va = a[titulosSortCol], vb = b[titulosSortCol];
+          const na = parseFloat(va), nb = parseFloat(vb);
+          if (!isNaN(na) && !isNaN(nb)) return (na-nb)*titulosSortDir;
+          return String(va||'').localeCompare(String(vb||''))*titulosSortDir;
+        });
+        document.getElementById('titulos-body').innerHTML = sorted.map((r,i) =>
+          `<tr>
+            <td style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;padding:11px 12px">${i+1}</td>
+            <td class="td-pilot"><a class="pilot-link" href="#piloto/${encodeURIComponent(r.nome)}">${r.nome}</a></td>
+            <td class="num titles" style="font-size:18px">${r.total}</td>
+            <td class="num" style="color:var(--muted)">${r.primeiroAno}</td>
+            <td class="num" style="color:var(--muted)">${r.ultimoAno}</td>
+          </tr>`
+        ).join('');
+
+        const periodo = r => r.primeiroAno === r.ultimoAno ? r.primeiroAno : `${r.primeiroAno} — ${r.ultimoAno}`;
+        document.getElementById('titulos-cards').innerHTML = sorted.map((r,i) =>
+          `<div class="titulos-card">
+            <div class="titulos-card-rank">${i+1}</div>
+            <div class="titulos-card-main">
+              <a class="pilot-link titulos-card-name" href="#piloto/${encodeURIComponent(r.nome)}">${r.nome}</a>
+              <div class="titulos-card-period">${periodo(r)}</div>
+            </div>
+            <div class="titulos-card-count">🏆 ${r.total}</div>
+          </div>`
+        ).join('');
+
+        document.querySelectorAll('[data-tcol]').forEach(th => {
+          const col = th.dataset.tcol;
+          const icon = th.querySelector('.sort-icon');
+          if (!icon) return;
+          th.classList.toggle('sorted', col === titulosSortCol);
+          icon.textContent = col === titulosSortCol ? (titulosSortDir===-1?'v':'^') : '--';
+        });
+      }
+
+      renderTable();
+
+      document.querySelectorAll('[data-tcol]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+          const col = th.dataset.tcol;
+          if (titulosSortCol === col) titulosSortDir *= -1; else { titulosSortCol = col; titulosSortDir = -1; }
+          renderTable();
+        });
+      });
+    }
+
+    /* ════════════════════════════════════════════
+       EVENTOS VIEW
+    ════════════════════════════════════════════ */
+    function renderEventos() {
+      const rows = dataCache.pilotos
+        .filter(d => parseInt(d['Eventos']) > 0)
+        .map(d => ({
+          nome:    (d['Piloto'] || '').trim(),
+          eventos: parseInt(d['Eventos'])   || 0,
+          corridas: parseInt(d['Corridas']) || 0,
+        }));
+
+      const view = document.getElementById('view-eventos');
+      view.innerHTML = `
+        <div class="hero compact">
+          <h1>Ranking de <span>Eventos</span></h1>
+          <p>Pilotos ordenados pelo número de campeonatos disputados</p>
+        </div>
+        <div class="titulos-table-wrap eventos-table-wrap">
+          <table id="eventos-table">
+            <thead><tr>
+              <th style="width:50px">#</th>
+              <th data-ecol="nome">Piloto <span class="sort-icon">--</span></th>
+              <th data-ecol="eventos"  class="num sorted">Eventos <span class="sort-icon">v</span></th>
+              <th data-ecol="corridas" class="num">Corridas <span class="sort-icon">--</span></th>
+            </tr></thead>
+            <tbody id="eventos-body"></tbody>
+          </table>
+        </div>
+        <div class="eventos-cards" id="eventos-cards"></div>
+      `;
+
+      function renderEvtTable() {
+        const sorted = [...rows].sort((a, b) => {
+          const va = a[eventosSortCol], vb = b[eventosSortCol];
+          const na = parseFloat(va), nb = parseFloat(vb);
+          if (!isNaN(na) && !isNaN(nb)) return (na - nb) * eventosSortDir;
+          return String(va || '').localeCompare(String(vb || '')) * eventosSortDir;
+        });
+
+        document.getElementById('eventos-body').innerHTML = sorted.map((r, i) =>
+          `<tr>
+            <td style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;padding:11px 12px">${i + 1}</td>
+            <td class="td-pilot"><a class="pilot-link" href="#piloto/${encodeURIComponent(r.nome)}">${r.nome}</a></td>
+            <td class="num" style="font-size:18px">${r.eventos}</td>
+            <td class="num" style="color:var(--muted)">${r.corridas}</td>
+          </tr>`
+        ).join('');
+
+        document.getElementById('eventos-cards').innerHTML = sorted.map((r, i) =>
+          `<div class="titulos-card">
+            <div class="titulos-card-rank">${i + 1}</div>
+            <div class="titulos-card-main">
+              <a class="pilot-link titulos-card-name" href="#piloto/${encodeURIComponent(r.nome)}">${r.nome}</a>
+              <div class="titulos-card-period">${r.corridas} corridas</div>
+            </div>
+            <div class="titulos-card-count">${r.eventos}</div>
+          </div>`
+        ).join('');
+
+        document.querySelectorAll('[data-ecol]').forEach(th => {
+          const col  = th.dataset.ecol;
+          const icon = th.querySelector('.sort-icon');
+          if (!icon) return;
+          th.classList.toggle('sorted', col === eventosSortCol);
+          icon.textContent = col === eventosSortCol ? (eventosSortDir === -1 ? 'v' : '^') : '--';
+        });
+      }
+
+      renderEvtTable();
+
+      document.querySelectorAll('[data-ecol]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+          const col = th.dataset.ecol;
+          if (eventosSortCol === col) eventosSortDir *= -1;
+          else { eventosSortCol = col; eventosSortDir = -1; }
+          renderEvtTable();
+        });
+      });
+    }
+
+    /* ════════════════════════════════════════════
+       HAMBURGER MENU
+    ════════════════════════════════════════════ */
+    const hamburgerBtn  = document.getElementById('hamburger');
+    const mobileMenuEl  = document.getElementById('mobile-menu');
+
+    function closeMobileMenu() {
+      hamburgerBtn.classList.remove('open');
+      mobileMenuEl.classList.remove('open');
+      hamburgerBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    hamburgerBtn.addEventListener('click', () => {
+      const isOpen = mobileMenuEl.classList.toggle('open');
+      hamburgerBtn.classList.toggle('open', isOpen);
+      hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    // Close on link click
+    mobileMenuEl.querySelectorAll('.nav-link').forEach(a => {
+      a.addEventListener('click', closeMobileMenu);
+    });
+
+    // Close on outside click
+    document.addEventListener('click', e => {
+      if (!hamburgerBtn.contains(e.target) && !mobileMenuEl.contains(e.target)) {
+        closeMobileMenu();
+      }
+    });
+
+    // Close on hash change (navegou para outra tela)
+    window.addEventListener('hashchange', () => {
+      closeMobileMenu();
+      // update active state in mobile menu too
+      const hash = location.hash || '#ranking';
+      mobileMenuEl.querySelectorAll('.nav-link').forEach(a => {
+        const view = a.dataset.view;
+        const active =
+          (view === 'ranking'  && (!location.hash || location.hash === '#ranking')) ||
+          (view === 'campeoes' && hash === '#campeoes') ||
+          (view === 'titulos'  && hash === '#titulos');
+        a.classList.toggle('active', active);
+      });
+    });
+
+    /* ════════════════════════════════════════════
+       BOOT
+    ════════════════════════════════════════════ */
+    Chart.defaults.font.family = "'Barlow Condensed', sans-serif";
+    Chart.defaults.color = '#8a8a96';
+
+    window.addEventListener('hashchange', router);
+    loadPilotos();
   </script>
 </body>
 </html>
