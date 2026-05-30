@@ -631,7 +631,7 @@
       }
       if (hash === '#eventos') {
         showView('view-eventos');
-        renderEventos();
+        showEventos();
         return;
       }
       // fallback
@@ -1239,14 +1239,45 @@
     /* ════════════════════════════════════════════
        EVENTOS VIEW
     ════════════════════════════════════════════ */
+    function showEventos() {
+      if (dataCache.historico) { renderEventos(); return; }
+      viewLoading('view-eventos', 'Carregando histórico...');
+      Papa.parse(csvUrl(GIDS.historico), {
+        download: true, header: true, skipEmptyLines: true,
+        complete(results) {
+          dataCache.historico = results.data.filter(d => d['Piloto']?.trim() && d['Campeonato']?.trim());
+          renderEventos();
+        },
+        error(err) {
+          document.getElementById('view-eventos').innerHTML =
+            `<div class="view-loading" style="color:var(--red)">Erro ao carregar histórico: ${err.message}</div>`;
+        }
+      });
+    }
+
     function renderEventos() {
+      // First and last Temporada per pilot from Historico_Geral (rows are chronological)
+      const span = {};
+      dataCache.historico.forEach(d => {
+        const p = d['Piloto']?.trim();
+        const t = d['Temporada']?.trim();
+        if (!p || !t) return;
+        if (!span[p]) span[p] = { primeiro: t, ultimo: t };
+        span[p].ultimo = t;
+      });
+
       const rows = dataCache.pilotos
         .filter(d => parseInt(d['Eventos']) > 0)
-        .map(d => ({
-          nome:    (d['Piloto'] || '').trim(),
-          eventos: parseInt(d['Eventos'])   || 0,
-          corridas: parseInt(d['Corridas']) || 0,
-        }));
+        .map(d => {
+          const nome = (d['Piloto'] || '').trim();
+          const s = span[nome] || {};
+          return {
+            nome,
+            eventos:  parseInt(d['Eventos']) || 0,
+            primeiro: s.primeiro || '—',
+            ultimo:   s.ultimo   || '—',
+          };
+        });
 
       const view = document.getElementById('view-eventos');
       view.innerHTML = `
@@ -1260,7 +1291,8 @@
               <th style="width:50px">#</th>
               <th data-ecol="nome">Piloto <span class="sort-icon">--</span></th>
               <th data-ecol="eventos"  class="num sorted">Eventos <span class="sort-icon">v</span></th>
-              <th data-ecol="corridas" class="num">Corridas <span class="sort-icon">--</span></th>
+              <th data-ecol="primeiro" class="num">Primeiro Evento <span class="sort-icon">--</span></th>
+              <th data-ecol="ultimo"   class="num">Último Evento <span class="sort-icon">--</span></th>
             </tr></thead>
             <tbody id="eventos-body"></tbody>
           </table>
@@ -1281,16 +1313,18 @@
             <td style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;padding:11px 12px">${i + 1}</td>
             <td class="td-pilot"><a class="pilot-link" href="#piloto/${encodeURIComponent(r.nome)}">${r.nome}</a></td>
             <td class="num" style="font-size:18px">${r.eventos}</td>
-            <td class="num" style="color:var(--muted)">${r.corridas}</td>
+            <td class="num" style="color:var(--muted)">${r.primeiro}</td>
+            <td class="num" style="color:var(--muted)">${r.ultimo}</td>
           </tr>`
         ).join('');
 
+        const periodo = r => r.primeiro === r.ultimo ? r.primeiro : `${r.primeiro} — ${r.ultimo}`;
         document.getElementById('eventos-cards').innerHTML = sorted.map((r, i) =>
           `<div class="titulos-card">
             <div class="titulos-card-rank">${i + 1}</div>
             <div class="titulos-card-main">
               <a class="pilot-link titulos-card-name" href="#piloto/${encodeURIComponent(r.nome)}">${r.nome}</a>
-              <div class="titulos-card-period">${r.corridas} corridas</div>
+              <div class="titulos-card-period">${periodo(r)}</div>
             </div>
             <div class="titulos-card-count">${r.eventos}</div>
           </div>`
