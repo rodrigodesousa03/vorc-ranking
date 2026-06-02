@@ -1171,6 +1171,11 @@
               <select id="cf-sim"><option value="">Todos</option>${sims.map(s=>`<option>${s}</option>`).join('')}</select>
               <span class="filter-label">Campeonato</span>
               <input type="text" id="cf-camp" placeholder="campeonato ou piloto..." style="min-width:180px" />
+              <span class="filter-label">Ordenar</span>
+              <select id="cf-sort">
+                <option value="recente">Mais recente</option>
+                <option value="antigo">Mais antigo</option>
+              </select>
               <div class="controls-right"><strong id="cf-count">${data.length}</strong> títulos</div>
             </div>
             <div id="champs-grid"></div>
@@ -1200,14 +1205,17 @@
         );
         document.getElementById('cf-count').textContent = filtered.length;
 
+        const sortVal = document.getElementById('cf-sort').value;
+
         const byTemp = {};
         filtered.forEach(d => {
           const key = `${d._ano} — ${d._temp}`;
           if (!byTemp[key]) byTemp[key] = [];
           byTemp[key].push(d);
         });
-        const sortedTemps = Object.keys(byTemp).sort((a, b) => b.localeCompare(a));
-
+        const sortedTemps = Object.keys(byTemp).sort((a, b) =>
+          sortVal === 'antigo' ? a.localeCompare(b) : b.localeCompare(a)
+        );
         document.getElementById('champs-grid').innerHTML = sortedTemps.length
           ? sortedTemps.map(temp => `
               <div class="champ-year-group">
@@ -1236,6 +1244,7 @@
       document.getElementById('cf-ano').addEventListener('change', filterAndRender);
       document.getElementById('cf-sim').addEventListener('change', filterAndRender);
       document.getElementById('cf-camp').addEventListener('input', filterAndRender);
+      document.getElementById('cf-sort').addEventListener('change', filterAndRender);
     }
 
     /* ════════════════════════════════════════════
