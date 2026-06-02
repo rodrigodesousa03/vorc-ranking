@@ -12,6 +12,30 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+    /* ─── BLOGGER OVERRIDES ─── */
+    #outer-wrapper,
+    #center-container,
+    #blog.container.outer-container,
+    .container.outer-container,
+    .blog-posts.hfeed,
+    .blog-posts.container,
+    .item-post-wrap,
+    article.blog-post.hentry {
+      max-width: 100% !important;
+      width: 100% !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      margin-left: 0 !important;
+      margin-right: 0 !important;
+      float: none !important;
+    }
+    .post-body.entry-content,
+    .post-inner-area { padding: 0 !important; margin: 0 !important; }
+    h1.entry-title { display: none !important; }
+    table th { border-top: none !important; border-left: none !important; border-right: none !important; border-bottom: 2px solid #f5a623 !important; }
+    table td { border-top: none !important; border-left: none !important; border-right: none !important; border-bottom: 1px solid #2e2e34 !important; }
+    .hist-table tr:last-child td { border-bottom: none !important; }
+
     :root {
       --orange:     #f5a623;
       --orange-dk:  #d4891a;
@@ -39,7 +63,14 @@
       background-size: 8px 8px;
     }
 
-    body { font-family: 'Barlow', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; }
+    body {
+      font-family: 'Barlow', sans-serif; color: var(--text); min-height: 100vh;
+      background-color: var(--bg);
+      background-image:
+        repeating-linear-gradient(45deg, rgba(255,255,255,.018) 0px, rgba(255,255,255,.018) 1px, transparent 1px, transparent 50%),
+        repeating-linear-gradient(-45deg, rgba(255,255,255,.018) 0px, rgba(255,255,255,.018) 1px, transparent 1px, transparent 50%);
+      background-size: 8px 8px;
+    }
 
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: #0a0a0c; }
@@ -48,62 +79,27 @@
     ::-webkit-scrollbar-corner { background: #0a0a0c; }
     * { scrollbar-width: thin; scrollbar-color: #2a2a30 #0a0a0c; }
 
-    /* ─── NAVBAR ─── */
-    .navbar {
+    /* ─── TAB STRIP ─── */
+    .tab-strip {
       position: sticky; top: 0; z-index: 100;
-      display: flex; align-items: center; gap: 16px;
-      padding: 0 32px; height: 62px;
+      display: flex; gap: 4px; align-items: center;
+      padding: 0 32px;
       background: #0a0a0c; border-bottom: 2px solid var(--orange);
       box-shadow: 0 4px 24px rgba(0,0,0,.6);
+      overflow-x: auto; scrollbar-width: none;
     }
-    .navbar-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .navbar-logo { height: 40px; width: auto; display: block; }
-    .navbar-sep { flex: 1; }
-    .nav-links { display: flex; gap: 4px; align-items: center; }
+    .tab-strip::-webkit-scrollbar { display: none; }
     .nav-link {
       font-family: 'Barlow Condensed', sans-serif;
       font-size: 14px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
       color: var(--muted); text-decoration: none;
-      padding: 6px 14px; border-radius: 6px;
-      transition: color .15s, background .15s;
+      padding: 14px 16px; border-radius: 0;
+      border-bottom: 3px solid transparent; margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+      white-space: nowrap;
     }
-    .nav-link:hover  { color: var(--orange); background: rgba(245,166,35,.08); }
-    .nav-link.active { color: var(--orange); background: rgba(245,166,35,.12); }
-
-    /* ─── HAMBURGER ─── */
-    .hamburger {
-      display: none; flex-direction: column; justify-content: center; gap: 5px;
-      width: 36px; height: 36px; background: none; border: none;
-      cursor: pointer; padding: 4px; border-radius: 6px;
-      transition: background .15s;
-    }
-    .hamburger:hover { background: rgba(245,166,35,.1); }
-    .hamburger span {
-      display: block; height: 2px; background: var(--text);
-      border-radius: 2px; transition: transform .25s, opacity .25s, width .25s;
-      transform-origin: center;
-    }
-    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-    .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-
-    /* ─── MOBILE MENU DROPDOWN ─── */
-    .mobile-menu {
-      display: none; position: fixed;
-      top: 64px; left: 0; right: 0;
-      background: #0d0d10;
-      border-bottom: 2px solid var(--orange);
-      box-shadow: 0 8px 32px rgba(0,0,0,.7);
-      z-index: 99; flex-direction: column; gap: 2px;
-      padding: 8px 12px 12px;
-      animation: slideDown .2s ease;
-    }
-    .mobile-menu.open { display: flex; }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-    .mobile-menu .nav-link {
-      font-size: 16px; padding: 12px 16px;
-      border-radius: 8px; display: block;
-    }
+    .nav-link:hover  { color: var(--orange); }
+    .nav-link.active { color: var(--orange); border-bottom-color: var(--orange); }
 
     /* ─── PILOT LINK ─── */
     .pilot-link { color: inherit; text-decoration: none; transition: color .15s; }
@@ -176,11 +172,11 @@
     .ac-profile-btn:hover { color: var(--orange); border-color: var(--orange); background: rgba(245,166,35,.08); }
 
     /* ─── TABLE ─── */
-    .table-wrap { padding: 0 32px 48px; overflow: auto; max-height: calc(100vh - 310px); }
+    .table-wrap { padding: 0 32px 48px; overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
     thead tr { border-bottom: 2px solid var(--orange); }
     th {
-      position: sticky; top: 0; z-index: 10; background: #0d0d10;
+      background: #0d0d10;
       font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
       letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
       padding: 14px 12px; white-space: nowrap;
@@ -201,8 +197,8 @@
     /* ─── BADGES ─── */
     .rating-badge {
       display: inline-flex; align-items: center; justify-content: center;
-      min-width: 44px; padding: 3px 8px; border-radius: 4px;
-      font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; border: 1.5px solid;
+      min-width: 34px; padding: 2px 6px; border-radius: 4px;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 800; border: 1.5px solid;
     }
     .r-high { color: var(--gold);    border-color: var(--gold);    background: rgba(255,215,0,.08); }
     .r-mid  { color: var(--orange);  border-color: var(--orange);  background: rgba(245,166,35,.08); }
@@ -331,7 +327,7 @@
     .champs-layout { display: flex; gap: 24px; padding: 24px 32px 48px; align-items: flex-start; }
     .champs-main { flex: 1; min-width: 0; }
     .champs-sidebar { width: 220px; flex-shrink: 0; }
-    .sidebar-card { background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--orange); border-radius: var(--radius); padding: 16px; position: sticky; top: 78px; }
+    .sidebar-card { background: var(--card); border: 1px solid var(--border); border-top: 3px solid var(--orange); border-radius: var(--radius); padding: 16px; position: sticky; top: 60px; }
     .sidebar-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
     .top-pilot-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
     .top-pilot-row:last-child { border-bottom: none; }
@@ -388,9 +384,7 @@
 
     /* ─── MOBILE ─── */
     @media (max-width: 700px) {
-      .navbar { padding: 0 16px; }
-      .nav-links { display: none; }
-      .hamburger { display: flex; }
+      .tab-strip { padding: 0 12px; }
       .hero, .stats-row, .controls { padding-left: 16px; padding-right: 16px; }
       .hero h1 { font-size: 28px; }
       .hero.compact h1 { font-size: 22px; }
@@ -413,30 +407,13 @@
 </head>
 <body class="carbon">
 
-  <!-- ─── NAVBAR ─── -->
-  <nav class="navbar">
-    <a class="navbar-brand" href="#ranking">
-      <img class="navbar-logo" src="https://blogger.googleusercontent.com/img/a/AVvXsEj-Xh3sM1FWrEFvWjM9KWcocuE6oaVS1pFIiXBUextERZk08waF6yHgteFMuWmxIus43IyaIMhkYxDENshfdo264exfDyfkHwVQLSpYRpH13YkEb1VcPuPzMHz921OPpYc1Drsy1hyQHGwFiYfZppttRAkGHtaTgEpqgagWFBp1uNaQF5mo9LgzZJ-jBQ=s126" alt="VORC Series" />
-    </a>
-    <div class="navbar-sep"></div>
-    <nav class="nav-links">
-      <a class="nav-link" href="#ranking"  data-view="ranking">Ranking</a>
-      <a class="nav-link" href="#campeoes" data-view="campeoes">Campeões</a>
-      <a class="nav-link" href="#titulos"  data-view="titulos">Títulos</a>
-      <a class="nav-link" href="#eventos"  data-view="eventos">Eventos</a>
-    </nav>
-    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
-  </nav>
-
-  <!-- MOBILE MENU -->
-  <div class="mobile-menu" id="mobile-menu" role="navigation">
+  <!-- ─── TAB STRIP ─── -->
+  <nav class="tab-strip" role="navigation">
     <a class="nav-link" href="#ranking"  data-view="ranking">Ranking</a>
     <a class="nav-link" href="#campeoes" data-view="campeoes">Campeões</a>
     <a class="nav-link" href="#titulos"  data-view="titulos">Títulos</a>
     <a class="nav-link" href="#eventos"  data-view="eventos">Eventos</a>
-  </div>
+  </nav>
 
   <!-- ─── GLOBAL LOADING ─── -->
   <div id="global-loading">
@@ -485,19 +462,18 @@
       <table id="pilots-table">
         <thead>
           <tr>
-            <th data-col="Piloto">Piloto <span class="sort-icon">--</span></th>
+            <th data-col="Piloto" style="min-width:180px">Piloto <span class="sort-icon">--</span></th>
             <th data-col="Rating" class="num sorted">Rating <span class="sort-icon">v</span></th>
             <th data-col="Licença">Licença <span class="sort-icon">--</span></th>
             <th data-col="Nac">País <span class="sort-icon">--</span></th>
             <th data-col="Corridas" class="num">Corridas <span class="sort-icon">--</span></th>
             <th data-col="Poles" class="num">Poles <span class="sort-icon">--</span></th>
             <th data-col="Vitórias" class="num">Vitórias <span class="sort-icon">--</span></th>
-            <th data-col="2º Lug" class="num">2º Lugar <span class="sort-icon">--</span></th>
-            <th data-col="3º Lug" class="num">3º Lugar <span class="sort-icon">--</span></th>
+            <th data-col="2º Lug" class="num">2º <span class="sort-icon">--</span></th>
+            <th data-col="3º Lug" class="num">3º <span class="sort-icon">--</span></th>
             <th data-col="Pódios" class="num">Pódios <span class="sort-icon">--</span></th>
             <th data-col="Titulos" class="num">🏆 Títulos <span class="sort-icon">--</span></th>
             <th data-col="Eventos" class="num">Eventos <span class="sort-icon">--</span></th>
-            <th data-col="Peso" class="num">Peso <span class="sort-icon">--</span></th>
           </tr>
         </thead>
         <tbody id="table-body"></tbody>
@@ -544,13 +520,26 @@
     const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQwRbzHhOI6N5j9WsB4p4cbJknNVMTf5eDo3MHNfYlFdSqx3pm4ScrF7_R7gByszQ/pub';
     const GIDS = { pilotos: '1711806708', historico: '2116738190', campeoes: '1857354493', config: '1681542241' };
     const LIC_MAP = {
-      '🅱': { cls: 'lic-B', label: 'Bronze' },
-      '🆂': { cls: 'lic-S', label: 'Silver' },
-      '🅶': { cls: 'lic-G', label: 'Gold' },
-      '🅿': { cls: 'lic-P', label: 'Platinum' },
-      '🅳': { cls: 'lic-D', label: 'Diamond' },
+      '🅱': { cls: 'lic-B', label: 'Bronze',   icon: '▲' },
+      '🆂': { cls: 'lic-S', label: 'Silver',   icon: '◈' },
+      '🅶': { cls: 'lic-G', label: 'Gold',     icon: '★' },
+      '🅿': { cls: 'lic-P', label: 'Platinum', icon: '✦' },
+      '🅳': { cls: 'lic-D', label: 'Diamond',  icon: '◆' },
     };
     const ALL_VIEWS = ['view-ranking', 'view-piloto', 'view-campeoes', 'view-titulos', 'view-eventos'];
+
+    const COUNTRY_NAMES = {
+      AO:'Angola', AR:'Argentina', AT:'Áustria', AU:'Austrália', AZ:'Azerbaijão',
+      BE:'Bélgica', BR:'Brasil', CA:'Canadá', CH:'Suíça', CL:'Chile',
+      CO:'Colômbia', CZ:'República Tcheca', DE:'Alemanha', DK:'Dinamarca',
+      EC:'Equador', ES:'Espanha', FI:'Finlândia', FR:'França', GB:'Reino Unido',
+      GR:'Grécia', HR:'Croácia', HU:'Hungria', IT:'Itália', JP:'Japão',
+      MX:'México', NL:'Holanda', NO:'Noruega', PE:'Peru', PL:'Polônia',
+      PT:'Portugal', PY:'Paraguai', RO:'Romênia', RS:'Sérvia', RU:'Rússia',
+      SE:'Suécia', SI:'Eslovênia', SK:'Eslováquia', TR:'Turquia',
+      UA:'Ucrânia', US:'Estados Unidos', UY:'Uruguai', VE:'Venezuela',
+      ZA:'África do Sul',
+    };
 
     /* ════════════════════════════════════════════
        STATE
@@ -636,9 +625,9 @@
     }
 
     function licBadge(lic, small) {
-      const info = LIC_MAP[lic] || { cls: '', label: lic || '—' };
+      const info = LIC_MAP[lic] || { cls: '', label: lic || '—', icon: '●' };
       const style = small ? ' style="font-size:12px;padding:2px 8px"' : '';
-      return `<span class="lic-badge ${info.cls}"${style}>${lic} ${info.label}</span>`;
+      return `<span class="lic-badge ${info.cls}"${style}>${info.icon} ${info.label}</span>`;
     }
 
     function weightDots(w) {
@@ -720,8 +709,8 @@
       return `<tr onclick="location.hash='#piloto/${encodeURIComponent(nome)}'">
         <td class="td-pilot">${nome}</td>
         <td class="num">${ratingBadge(d['Rating'])}</td>
-        <td><span class="lic-badge ${info.cls}">${lic} ${info.label}</span></td>
-        <td class="flag-cell">${flagImg(nac)}<small style="font-size:12px;color:var(--muted);vertical-align:middle">${nac || '—'}</small></td>
+        <td><span class="lic-badge ${info.cls}">${info.icon} ${info.label}</span></td>
+        <td class="flag-cell" style="white-space:nowrap">${flagImg(nac)}${nac ? `<span style="font-size:11px;color:var(--muted)">${nac}</span>` : ''}</td>
         <td class="num">${d['Corridas'] || 0}</td>
         <td class="num ${pol ? 'poles' : ''}">${pol}</td>
         <td class="num ${vit ? 'wins'  : ''}">${vit}</td>
@@ -730,7 +719,6 @@
         <td class="num">${d['Pódios'] || 0}</td>
         <td class="num">${tit ? `<span class="titles" style="font-size:14px">🏆 ${tit}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
         <td class="num" style="color:var(--muted);font-size:13px">${d['Eventos'] || 0}</td>
-        <td class="num">${weightDots(d['Peso'])}</td>
       </tr>`;
     }
 
@@ -760,7 +748,7 @@
       const tbody = document.getElementById('table-body');
       tbody.innerHTML = filtered.length
         ? filtered.map(renderRow).join('')
-        : `<tr class="empty-row"><td colspan="13">Nenhum piloto encontrado com os filtros selecionados.</td></tr>`;
+        : `<tr class="empty-row"><td colspan="12">Nenhum piloto encontrado com os filtros selecionados.</td></tr>`;
       document.getElementById('count-shown').textContent = filtered.length;
       filteredCache = filtered;
       renderCards(filtered);
@@ -783,7 +771,7 @@
             <div class="card-name">${nome}</div>
             <div class="card-sub">
               <span class="rating-badge ${ratingClass(d['Rating'])}" style="font-size:13px;padding:2px 7px">${d['Rating'] ?? '—'}</span>
-              <span class="lic-badge ${info.cls}" style="font-size:12px;padding:2px 8px">${lic} ${info.label}</span>
+              <span class="lic-badge ${info.cls}" style="font-size:12px;padding:2px 8px">${info.icon} ${info.label}</span>
               <span style="display:inline-flex;align-items:center;gap:4px">${flagImg(nac)}<small style="font-size:11px;color:var(--muted)">${nac}</small></span>
             </div>
           </div>
@@ -804,7 +792,10 @@
     function populateCountries(data) {
       const sel = document.getElementById('filter-country');
       [...new Set(data.map(d=>(d['Nac']||'').trim()).filter(Boolean))].sort().forEach(c => {
-        const o = document.createElement('option'); o.value = c; o.textContent = c; sel.appendChild(o);
+        const o = document.createElement('option');
+        o.value = c;
+        o.textContent = COUNTRY_NAMES[c] ? `${COUNTRY_NAMES[c]} (${c})` : c;
+        sel.appendChild(o);
       });
     }
 
@@ -962,7 +953,7 @@
           <td class="num" style="color:var(--muted)">${d['Rating']||'—'}</td>
           <td class="num">${d['Novo Rating']||'—'}</td>
           <td class="num"><span class="${dClass}">${dStr}</span></td>
-          <td>${licN ? `<span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licN} ${licNInfo.label}</span>` : '—'}</td>
+          <td>${licN ? `<span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licNInfo.icon||'●'} ${licNInfo.label}</span>` : '—'}</td>
         </tr>`);
 
         histCardItems.push(`<div class="hist-card ${isTit ? 'hist-card--titulo' : ''}">
@@ -989,7 +980,7 @@
               <span class="hist-card-stat-val ${dClass}">${dStr}</span>
             </div>
           </div>
-          ${licN ? `<div><span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licN} ${licNInfo.label}</span></div>` : ''}
+          ${licN ? `<div><span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licNInfo.icon||'●'} ${licNInfo.label}</span></div>` : ''}
         </div>`);
       });
 
@@ -1458,50 +1449,6 @@
       });
     }
 
-    /* ════════════════════════════════════════════
-       HAMBURGER MENU
-    ════════════════════════════════════════════ */
-    const hamburgerBtn  = document.getElementById('hamburger');
-    const mobileMenuEl  = document.getElementById('mobile-menu');
-
-    function closeMobileMenu() {
-      hamburgerBtn.classList.remove('open');
-      mobileMenuEl.classList.remove('open');
-      hamburgerBtn.setAttribute('aria-expanded', 'false');
-    }
-
-    hamburgerBtn.addEventListener('click', () => {
-      const isOpen = mobileMenuEl.classList.toggle('open');
-      hamburgerBtn.classList.toggle('open', isOpen);
-      hamburgerBtn.setAttribute('aria-expanded', String(isOpen));
-    });
-
-    // Close on link click
-    mobileMenuEl.querySelectorAll('.nav-link').forEach(a => {
-      a.addEventListener('click', closeMobileMenu);
-    });
-
-    // Close on outside click
-    document.addEventListener('click', e => {
-      if (!hamburgerBtn.contains(e.target) && !mobileMenuEl.contains(e.target)) {
-        closeMobileMenu();
-      }
-    });
-
-    // Close on hash change (navegou para outra tela)
-    window.addEventListener('hashchange', () => {
-      closeMobileMenu();
-      // update active state in mobile menu too
-      const hash = location.hash || '#ranking';
-      mobileMenuEl.querySelectorAll('.nav-link').forEach(a => {
-        const view = a.dataset.view;
-        const active =
-          (view === 'ranking'  && (!location.hash || location.hash === '#ranking')) ||
-          (view === 'campeoes' && hash === '#campeoes') ||
-          (view === 'titulos'  && hash === '#titulos');
-        a.classList.toggle('active', active);
-      });
-    });
 
     /* ════════════════════════════════════════════
        BOOT
