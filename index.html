@@ -214,6 +214,7 @@
     .lic-G { color: var(--gold);     border-color: var(--gold);     background: rgba(255,215,0,.1); }
     .lic-P { color: var(--platinum); border-color: var(--platinum); background: rgba(208,232,245,.08); }
     .lic-D { color: var(--diamond);  border-color: var(--diamond);  background: rgba(116,215,247,.1); }
+    .lic-C { color: #e8f0ff;         border-color: #8ab0d8;         background: rgba(140,180,220,.15); }
 
     /* ─── MISC ─── */
     .flag-cell { line-height: 1; }
@@ -452,6 +453,7 @@
         <option value="🅶">🅶 Gold</option>
         <option value="🅿">🅿 Platinum</option>
         <option value="🅳">🅳 Diamond</option>
+        <option value="🅲">🅲 Carbon</option>
       </select>
       <span class="filter-label">País</span>
       <select id="filter-country"><option value="">Todos</option></select>
@@ -520,11 +522,12 @@
     const SHEET_BASE = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQwRbzHhOI6N5j9WsB4p4cbJknNVMTf5eDo3MHNfYlFdSqx3pm4ScrF7_R7gByszQ/pub';
     const GIDS = { pilotos: '1711806708', historico: '2116738190', campeoes: '1857354493', config: '1681542241' };
     const LIC_MAP = {
-      '🅱': { cls: 'lic-B', label: 'Bronze',   icon: '▲' },
-      '🆂': { cls: 'lic-S', label: 'Silver',   icon: '◈' },
-      '🅶': { cls: 'lic-G', label: 'Gold',     icon: '★' },
-      '🅿': { cls: 'lic-P', label: 'Platinum', icon: '✦' },
-      '🅳': { cls: 'lic-D', label: 'Diamond',  icon: '◆' },
+      '🅱': { cls: 'lic-B', label: 'Bronze',   icon: '▲', rank: 1 },
+      '🆂': { cls: 'lic-S', label: 'Silver',   icon: '◈', rank: 2 },
+      '🅶': { cls: 'lic-G', label: 'Gold',     icon: '★', rank: 3 },
+      '🅿': { cls: 'lic-P', label: 'Platinum', icon: '✦', rank: 4 },
+      '🅳': { cls: 'lic-D', label: 'Diamond',  icon: '◆', rank: 5 },
+      '🅲': { cls: 'lic-C', label: 'Carbon',   icon: '⬟', rank: 6 },
     };
     const ALL_VIEWS = ['view-ranking', 'view-piloto', 'view-campeoes', 'view-titulos', 'view-eventos'];
 
@@ -556,6 +559,7 @@
       'Ouro':     'rgba(255,215,0,0.12)',
       'Platina':  'rgba(100,180,230,0.18)',
       'Diamante': 'rgba(116,215,247,0.12)',
+      'Carbono':  'rgba(140,180,220,0.14)',
     };
 
     function loadConfig() {
@@ -615,8 +619,8 @@
 
     function ratingClass(r) {
       const n = parseInt(r) || 0;
-      if (n >= 50) return 'r-high';
-      if (n >= 25) return 'r-mid';
+      if (n >= 80) return 'r-high';
+      if (n >= 45) return 'r-mid';
       return 'r-low';
     }
 
@@ -1043,10 +1047,11 @@
       if (historico.length) {
         const labels       = historico.map(d => `${d['Temporada']} — ${d['Campeonato']}`);
         const ratings      = historico.map(d => parseFloat(d['Novo Rating']) || null);
-        const pointColors  = historico.map(d =>
-          d['N.Licença'] && d['Licença'] && d['N.Licença'].trim() !== d['Licença'].trim()
-            ? '#4caf50' : '#f5a623'
-        );
+        const pointColors  = historico.map(d => {
+          const rankAntes  = LIC_MAP[d['Licença']?.trim()]?.rank  || 0;
+          const rankDepois = LIC_MAP[d['N.Licença']?.trim()]?.rank || 0;
+          return rankDepois > rankAntes ? '#4caf50' : '#f5a623';
+        });
 
         const ctx = document.getElementById('rating-chart').getContext('2d');
         ratingChartInstance = new Chart(ctx, {

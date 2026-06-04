@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VORC — Importador de Classificacao</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --orange: #f5a623; --orange-dk: #d4891a;
+      --bg: #111113; --surface: #1c1c1f; --card: #242428;
+      --border: #2e2e34; --text: #e8e8ec; --muted: #8a8a96;
+      --green: #4caf50; --red: #e53935; --radius: 8px;
+    }
+    body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0a0a0c; }
+    ::-webkit-scrollbar-thumb { background: #2a2a30; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--orange); }
+
+    .navbar {
+      display: flex; align-items: center; gap: 16px;
+      padding: 0 32px; height: 62px;
+      background: #0a0a0c; border-bottom: 2px solid var(--orange);
+    }
+    .navbar-brand { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 800; color: var(--orange); text-decoration: none; letter-spacing: 1px; }
+    .navbar-sub   { font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+
+    .page { max-width: 1200px; margin: 0 auto; padding: 32px 24px 80px; }
+
+    h2 { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #fff; margin-bottom: 6px; }
+    h2::after { content: ''; display: block; width: 36px; height: 3px; background: var(--orange); margin-top: 6px; }
+    p.desc { color: var(--muted); font-size: 14px; margin: 12px 0 24px; line-height: 1.6; }
+
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+    .card-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--orange); margin-bottom: 16px; }
+
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .grid3 { grid-template-columns: 1fr; } }
+
+    label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 6px; }
+    input[type="text"], input[type="number"], textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-family: 'Barlow', sans-serif; font-size: 14px;
+      padding: 10px 12px; outline: none; transition: border-color .15s;
+    }
+    input:focus, textarea:focus { border-color: var(--orange); }
+    textarea { min-height: 200px; resize: vertical; font-size: 12px; font-family: monospace; }
+
+    .btn {
+      font-family: 'Barlow Condensed', sans-serif; font-size: 14px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px; cursor: pointer;
+      border: none; border-radius: 6px; padding: 11px 22px;
+      transition: opacity .15s, transform .1s; white-space: nowrap;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--orange); color: #000; }
+    .btn-primary:hover { background: var(--orange-dk); }
+    .btn-green { background: var(--green); color: #000; }
+    .btn-green:hover { opacity: .85; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+
+    .alert { font-size: 13px; padding: 10px 14px; border-radius: 6px; margin-top: 12px; display: none; }
+    .alert.info  { background: rgba(245,166,35,.1);  border: 1px solid rgba(245,166,35,.3);  color: var(--orange); display: block; }
+    .alert.ok    { background: rgba(76,175,80,.1);   border: 1px solid rgba(76,175,80,.3);   color: var(--green);  display: block; }
+    .alert.error { background: rgba(229,57,53,.1);   border: 1px solid rgba(229,57,53,.3);   color: var(--red);    display: block; }
+
+    /* Column legend */
+    .col-legend { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+    .col-tag {
+      font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: 12px; letter-spacing: .5px;
+    }
+    .col-tag.manual  { background: rgba(245,166,35,.15); border: 1px solid rgba(245,166,35,.4); color: var(--orange); }
+    .col-tag.formula { background: rgba(138,138,150,.08); border: 1px solid var(--border); color: #444; text-decoration: line-through; }
+    .col-tag.auto    { background: rgba(76,175,80,.1); border: 1px solid rgba(76,175,80,.3); color: var(--green); }
+
+    /* Tables */
+    .tbl-outer { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead tr { border-bottom: 2px solid var(--orange); }
+    th {
+      position: sticky; top: 0; background: #0d0d10;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+      padding: 10px 10px; white-space: nowrap;
+    }
+    th.r { text-align: right; }
+    .letter-row th { font-size: 9px; color: #444; padding-bottom: 2px; padding-top: 6px; border-bottom: 1px solid var(--border); }
+    td { padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; vertical-align: middle; }
+    td.r { text-align: right; }
+    td.fx { background: rgba(255,255,255,.018); color: #444; font-size: 11px; font-style: italic; text-align: center; }
+    td.pos { color: var(--orange); font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; text-align: right; }
+    td.tit { text-align: center; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: rgba(245,166,35,.05); }
+    tbody tr:hover td.fx { background: rgba(245,166,35,.02); }
+
+    td input[type="text"], td input[type="number"] {
+      padding: 4px 7px; font-size: 12px; border-radius: 4px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); width: 100%;
+      font-family: 'Barlow', sans-serif;
+    }
+    td input:focus { border-color: var(--orange); outline: none; }
+    td input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--orange); cursor: pointer; }
+
+    .map-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+    .map-table tr:last-child td { border-bottom: none; }
+    .map-orig { color: var(--muted); font-family: monospace; font-size: 12px; }
+    .map-arrow { color: var(--orange); text-align: center; width: 30px; }
+
+    .actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+    .copy-hint { font-size: 12px; color: var(--muted); }
+    .copy-hint.ok { color: var(--green); }
+
+    .paste-note {
+      font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.7;
+      background: rgba(245,166,35,.05); border: 1px solid rgba(245,166,35,.2);
+      border-radius: 6px; padding: 12px 16px;
+    }
+    .paste-note strong { color: var(--orange); }
+
+    #preview-section { display: none; }
+    #preview-section.show { display: block; }
+
+    .step-badge {
+      display: inline-block; background: var(--orange); color: #000;
+      font-family: 'Barlow Condensed', sans-serif; font-size: 11px; font-weight: 800;
+      padding: 2px 8px; border-radius: 20px; margin-right: 8px; vertical-align: middle;
+    }
+
+    .how-to {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px 20px; margin-bottom: 16px; font-size: 13px; color: var(--muted); line-height: 1.7;
+    }
+    .how-to ol { padding-left: 18px; }
+    .how-to li { margin-bottom: 4px; }
+    .how-to code { background: rgba(255,255,255,.06); border-radius: 4px; padding: 1px 6px; font-size: 12px; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <a href="index.html" class="navbar-brand">VORC</a>
+  <span class="navbar-sub">Importador de Classificacao</span>
+</nav>
+
+<div class="page">
+  <h2>Importador de Classificacao</h2>
+  <p class="desc">
+    Cole a tabela de classificacao copiada diretamente do site do campeonato.
+    A ferramenta extrai posicoes, corridas, vitorias e podios e gera as linhas
+    prontas para a aba <strong>Historico_Geral</strong> do Google Sheets.
+    Colunas de formula (B, D, G, I, J, K, L) sao deixadas em branco automaticamente.
+  </p>
+
+  <!-- Column legend -->
+  <div class="col-legend">
+    <span class="col-tag manual">A · Piloto</span>
+    <span class="col-tag formula">B · formula</span>
+    <span class="col-tag manual">C · Rating</span>
+    <span class="col-tag formula">D · formula</span>
+    <span class="col-tag manual">E · Pos.Esp</span>
+    <span class="col-tag auto">F · Pos.Final</span>
+    <span class="col-tag formula">G · formula</span>
+    <span class="col-tag manual">H · Media Grid</span>
+    <span class="col-tag formula">I · formula</span>
+    <span class="col-tag formula">J · formula</span>
+    <span class="col-tag formula">K · formula</span>
+    <span class="col-tag formula">L · formula</span>
+    <span class="col-tag auto">M · Corridas</span>
+    <span class="col-tag auto">N · Poles</span>
+    <span class="col-tag auto">O · Vitorias</span>
+    <span class="col-tag auto">P · 2 Lug</span>
+    <span class="col-tag auto">Q · 3 Lug</span>
+    <span class="col-tag auto">R · Podios</span>
+    <span class="col-tag auto">S · Titulo</span>
+    <span class="col-tag manual">T · Campeonato</span>
+  </div>
+
+  <!-- STEP 1: Metadata -->
+  <div class="card">
+    <div class="card-title"><span class="step-badge">1</span> Metadados do Campeonato</div>
+    <div class="grid3">
+      <div>
+        <label for="inp-temporada">Temporada</label>
+        <input type="text" id="inp-temporada" placeholder="Ex: T1 2015" />
+      </div>
+      <div>
+        <label for="inp-campeonato">Campeonato (col T)</label>
+        <input type="text" id="inp-campeonato" placeholder="Ex: OFF Road Series" />
+      </div>
+      <div>
+        <label for="inp-tipo">Tipo</label>
+        <input type="text" id="inp-tipo" placeholder="Ex: Off Road, GT, F1..." />
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Paste table -->
+  <div class="card">
+    <div class="card-title"><span class="step-badge">2</span> Colar Tabela do Campeonato</div>
+
+    <div class="how-to">
+      <ol>
+        <li>Abra a pagina do campeonato no navegador (ex: <code>http://177.74.174.79:10000/championships/championship?cid=130</code>)</li>
+        <li>Selecione toda a tabela de classificacao com o mouse</li>
+        <li>Copie com <code>Ctrl+C</code></li>
+        <li>Cole aqui abaixo com <code>Ctrl+V</code></li>
+      </ol>
+    </div>
+
+    <label for="inp-table">Tabela copiada:</label>
+    <textarea id="inp-table" placeholder="Cole aqui a tabela copiada do site (Ctrl+V)...&#10;&#10;Formato esperado (2 linhas por piloto):&#10; 1	 Victor Ribeiro&#10;Grip Racing	 120	 227	 ...	 196	 -&#10; 2	 Joao Regatieri&#10;Tem Schnell	 150	 131	 ...	 194	 2"></textarea>
+
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="btn-parse">Processar tabela</button>
+      <button class="btn btn-ghost"   id="btn-clear-paste">Limpar</button>
+    </div>
+    <div id="parse-status" class="alert"></div>
+  </div>
+
+  <!-- STEP 3–5: Preview -->
+  <div id="preview-section">
+
+    <!-- Name mapping -->
+    <div class="card">
+      <div class="card-title"><span class="step-badge">3</span> Mapeamento de Nomes</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+        Corrija o nome do piloto caso ele seja diferente do cadastrado no VORC.
+      </p>
+      <div style="overflow:auto;max-height:280px">
+        <table class="map-table" id="map-table">
+          <thead><tr>
+            <th style="width:45%">Nome no servidor</th>
+            <th style="width:10%;text-align:center"></th>
+            <th style="width:45%">Nome no VORC (col A)</th>
+          </tr></thead>
+          <tbody id="map-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Preview table -->
+    <div class="card">
+      <div class="card-title"><span class="step-badge">4</span> Previa — Edite os valores manuais</div>
+      <div class="tbl-outer">
+        <table id="preview-table">
+          <thead>
+            <tr class="letter-row" id="hdr-letters"></tr>
+            <tr id="hdr-names"></tr>
+          </thead>
+          <tbody id="preview-body"></tbody>
+        </table>
+      </div>
+
+      <div class="paste-note">
+        <strong>Como colar no Google Sheets:</strong>
+        Clique na celula <strong>A</strong> da primeira linha vazia do Historico_Geral
+        → botao <strong>"Copiar TSV"</strong> abaixo
+        → <code>Ctrl+Shift+V</code> no Sheets (Colar especial → Somente valores).
+        As colunas de formula ficam vazias e <strong>nao sobrescrevem</strong> suas formulas —
+        basta copiar as formulas da linha acima depois.
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-green" id="btn-copy-tsv">Copiar TSV (colar no Sheets)</button>
+        <button class="btn btn-ghost" id="btn-copy-csv">Copiar CSV</button>
+        <span class="copy-hint" id="copy-hint"></span>
+        <button class="btn btn-ghost" id="btn-reset" style="margin-left:auto">Recomecar</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── Column schema (A–T) ─────────────────────────────────────────────────────
+// type: 'formula' | 'auto' | 'manual'
+const COLS = [
+  { letter:'A', key:'Piloto',    label:'Piloto',    type:'auto',    num:false },
+  { letter:'B', key:null,        label:'fx',        type:'formula', num:false },
+  { letter:'C', key:'Rating',    label:'Rating',    type:'manual',  num:true  },
+  { letter:'D', key:null,        label:'fx',        type:'formula', num:false },
+  { letter:'E', key:'PosEsp',    label:'Pos.Esp',   type:'manual',  num:true  },
+  { letter:'F', key:'PosFinal',  label:'Pos.Final', type:'auto',    num:true  },
+  { letter:'G', key:null,        label:'fx',        type:'formula', num:false },
+  { letter:'H', key:'MediaGrid', label:'Media Grid',type:'manual',  num:true  },
+  { letter:'I', key:null,        label:'fx',        type:'formula', num:false },
+  { letter:'J', key:null,        label:'fx',        type:'formula', num:false },
+  { letter:'K', key:null,        label:'fx',        type:'formula', num:false },
+  { letter:'L', key:null,        label:'fx',        type:'formula', num:false },
+  { letter:'M', key:'Corridas',  label:'Corridas',  type:'auto',    num:true  },
+  { letter:'N', key:'Poles',     label:'Poles',     type:'auto',    num:true  },
+  { letter:'O', key:'Vitorias',  label:'Vitorias',  type:'auto',    num:true  },
+  { letter:'P', key:'Seg',       label:'2 Lug',     type:'auto',    num:true  },
+  { letter:'Q', key:'Ter',       label:'3 Lug',     type:'auto',    num:true  },
+  { letter:'R', key:'Podios',    label:'Podios',    type:'auto',    num:true  },
+  { letter:'S', key:'Titulo',    label:'Titulo',    type:'auto',    num:true  },
+  { letter:'T', key:'Camp',      label:'Campeonato',type:'manual',  num:false },
+];
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let drivers = [];
+
+// ─── Build table header ───────────────────────────────────────────────────────
+(function buildHeader() {
+  const letters = document.getElementById('hdr-letters');
+  const names   = document.getElementById('hdr-names');
+  COLS.forEach(c => {
+    const tl = document.createElement('th');
+    tl.textContent = c.letter;
+    tl.className = (c.num ? 'r' : '');
+    if (c.type === 'formula') tl.style.color = '#333';
+    letters.appendChild(tl);
+
+    const tn = document.createElement('th');
+    tn.textContent = c.label;
+    tn.className = (c.num ? 'r' : '');
+    if (c.type === 'formula') { tn.style.color = '#333'; tn.style.fontStyle = 'italic'; }
+    if (c.type === 'auto') tn.style.color = 'var(--green)';
+    names.appendChild(tn);
+  });
+})();
+
+// ─── Round result parser ──────────────────────────────────────────────────────
+// Format: digits + optional suffix (DNF, Eng, Sus...)
+// 3-digit: first digit = race pos (1–9), last 2 = grid
+// 4-digit: first 2 = race pos (10+), last 2 = grid
+// Ambiguity resolution for 3-digit: if last 2 digits > 25, assume 2-digit pos + 1-digit grid
+function parseRound(s) {
+  if (!s || s === '-') return null;
+  const m = s.match(/^(\d+)/);
+  if (!m) return null;
+  const digits = m[1];
+  const len = digits.length;
+
+  let racePos, gridPos;
+  if (len === 1 || len === 2) {
+    racePos = parseInt(digits); gridPos = null;
+  } else if (len === 3) {
+    const optA = { racePos: parseInt(digits[0]),    gridPos: parseInt(digits.slice(1)) };
+    const optB = { racePos: parseInt(digits.slice(0,2)), gridPos: parseInt(digits[2]) };
+    // If grid from optA > 25, prefer optB (single-digit grid more likely)
+    ({ racePos, gridPos } = optA.gridPos > 25 ? optB : optA);
+  } else {
+    racePos = parseInt(digits.slice(0, 2));
+    gridPos = parseInt(digits.slice(2));
+  }
+  return { racePos, gridPos };
+}
+
+// ─── Table parser ─────────────────────────────────────────────────────────────
+function parsePastedTable(text) {
+  const lines = text.split('\n').map(l => l.trimEnd());
+  const result = [];
+
+  let i = 0;
+  while (i < lines.length) {
+    const parts1 = lines[i].split('\t').map(p => p.trim()).filter(p => p !== '');
+
+    // Driver line: first token is a positive integer (position), second is the name
+    const posNum = parseInt(parts1[0]);
+    if (isNaN(posNum) || posNum <= 0 || parts1.length < 2) { i++; continue; }
+
+    const name = parts1.slice(1).join(' ').trim();
+    if (!name) { i++; continue; }
+
+    // Next non-empty line: team + round results + PTS + Gap
+    let j = i + 1;
+    while (j < lines.length && lines[j].trim() === '') j++;
+
+    const parts2 = j < lines.length
+      ? lines[j].split('\t').map(p => p.trim())
+      : [];
+
+    // parts2[0] = team name; last two = PTS, Gap; middle = round results
+    const roundCells = parts2.length >= 3
+      ? parts2.slice(1, parts2.length - 2)
+      : [];
+
+    let corridas = 0, vitorias = 0, poles = 0, seg = 0, ter = 0;
+    for (const cell of roundCells) {
+      if (!cell || cell === '-') continue;
+      corridas++;
+      const r = parseRound(cell);
+      if (!r) continue;
+      if (r.racePos === 1) vitorias++;
+      if (r.racePos === 2) seg++;
+      if (r.racePos === 3) ter++;
+      if (r.gridPos  === 1) poles++;
+    }
+
+    result.push({
+      pos: posNum, name, corridas, vitorias, poles,
+      seg, ter, podios: vitorias + seg + ter,
+    });
+
+    i = j + 1;
+  }
+
+  return result;
+}
+
+// ─── Alert helpers ────────────────────────────────────────────────────────────
+function setAlert(msg, type) {
+  const el = document.getElementById('parse-status');
+  el.textContent = msg;
+  el.className = `alert ${type}`;
+}
+
+// ─── Parse button ─────────────────────────────────────────────────────────────
+document.getElementById('btn-parse').addEventListener('click', () => {
+  const text = document.getElementById('inp-table').value;
+  if (!text.trim()) { setAlert('Cole a tabela primeiro.', 'error'); return; }
+
+  const result = parsePastedTable(text);
+  if (!result.length) {
+    setAlert('Nenhum piloto encontrado. Verifique se o formato e: numero+tab+nome na primeira linha de cada piloto.', 'error');
+    return;
+  }
+
+  setAlert(`${result.length} piloto(s) encontrado(s).`, 'ok');
+  buildPreview(result);
+});
+
+document.getElementById('btn-clear-paste').addEventListener('click', () => {
+  document.getElementById('inp-table').value = '';
+  document.getElementById('parse-status').className = 'alert';
+});
+
+// ─── Build preview ────────────────────────────────────────────────────────────
+function buildPreview(data) {
+  drivers = data;
+
+  // Name mapping
+  const mapBody = document.getElementById('map-body');
+  mapBody.innerHTML = '';
+  data.forEach((d, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="map-orig">${d.name}</td>
+      <td class="map-arrow">&#8594;</td>
+      <td><input type="text" id="map-${i}" value="${d.name}" /></td>
+    `;
+    mapBody.appendChild(tr);
+  });
+  mapBody.querySelectorAll('input').forEach(inp => inp.addEventListener('input', renderRows));
+
+  renderRows();
+  document.getElementById('preview-section').classList.add('show');
+  document.getElementById('preview-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderRows() {
+  const camp = document.getElementById('inp-campeonato').value.trim();
+  const tbody = document.getElementById('preview-body');
+  tbody.innerHTML = '';
+
+  drivers.forEach((d, i) => {
+    const name = document.getElementById(`map-${i}`)?.value?.trim() || d.name;
+    const tr = document.createElement('tr');
+
+    const cells = COLS.map(c => {
+      if (c.type === 'formula') return `<td class="fx">fx</td>`;
+      switch (c.key) {
+        case 'Piloto':    return `<td>${name}</td>`;
+        case 'PosFinal':  return `<td class="pos r">${d.pos}</td>`;
+        case 'Corridas':  return `<td class="r"><input type="number" id="m-${i}-cor" value="${d.corridas}" style="width:52px" min="0" /></td>`;
+        case 'Poles':     return `<td class="r"><input type="number" id="m-${i}-pol" value="${d.poles}"    style="width:52px" min="0" /></td>`;
+        case 'Vitorias':  return `<td class="r"><input type="number" id="m-${i}-vit" value="${d.vitorias}" style="width:52px" min="0" /></td>`;
+        case 'Seg':       return `<td class="r"><input type="number" id="m-${i}-seg" value="${d.seg}"      style="width:52px" min="0" /></td>`;
+        case 'Ter':       return `<td class="r"><input type="number" id="m-${i}-ter" value="${d.ter}"      style="width:52px" min="0" /></td>`;
+        case 'Podios':    return `<td class="r"><input type="number" id="m-${i}-pod" value="${d.podios}"   style="width:52px" min="0" /></td>`;
+        case 'Titulo':    return `<td class="tit"><input type="checkbox" id="m-${i}-tit" ${d.pos === 1 ? 'checked' : ''} /></td>`;
+        case 'Rating':    return `<td class="r"><input type="number" id="m-${i}-rat" placeholder="—"  style="width:62px" /></td>`;
+        case 'PosEsp':    return `<td class="r"><input type="number" id="m-${i}-esp" placeholder="—"  style="width:52px" /></td>`;
+        case 'MediaGrid': return `<td class="r"><input type="number" id="m-${i}-mgr" placeholder="—"  style="width:70px" step="0.01" /></td>`;
+        case 'Camp':      return `<td><input type="text" id="m-${i}-cmp" value="${camp}" style="min-width:130px" /></td>`;
+        default: return '<td></td>';
+      }
+    });
+
+    tr.innerHTML = cells.join('');
+    tbody.appendChild(tr);
+  });
+}
+
+['inp-temporada','inp-campeonato','inp-tipo'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => { if (drivers.length) renderRows(); });
+});
+
+// ─── Export ───────────────────────────────────────────────────────────────────
+function buildTSV(sep) {
+  const header = COLS.map(c => c.type === 'formula' ? '' : c.label).join(sep);
+  const rows = drivers.map((d, i) => {
+    const v = key => document.getElementById(`m-${i}-${key}`)?.value?.trim() ?? '';
+    const chk = key => document.getElementById(`m-${i}-${key}`)?.checked ? '1' : '0';
+    const name = document.getElementById(`map-${i}`)?.value?.trim() || d.name;
+
+    const map = {
+      Piloto: name, Rating: v('rat'), PosEsp: v('esp'), PosFinal: d.pos,
+      MediaGrid: v('mgr'), Corridas: v('cor'), Poles: v('pol'), Vitorias: v('vit'),
+      Seg: v('seg'), Ter: v('ter'), Podios: v('pod'), Titulo: chk('tit'),
+      Camp: v('cmp') || document.getElementById('inp-campeonato').value.trim(),
+    };
+    return COLS.map(c => c.type === 'formula' ? '' : (map[c.key] ?? '')).join(sep);
+  });
+  return [header, ...rows].join('\n');
+}
+
+async function copy(text, label) {
+  try {
+    await navigator.clipboard.writeText(text);
+    const el = document.getElementById('copy-hint');
+    el.textContent = `✓ ${label} copiado!`;
+    el.className = 'copy-hint ok';
+    setTimeout(() => { el.textContent = ''; el.className = 'copy-hint'; }, 3000);
+  } catch (_) {
+    alert('Falha ao copiar. Selecione o texto manualmente.');
+  }
+}
+
+document.getElementById('btn-copy-tsv').addEventListener('click', () => copy(buildTSV('\t'), 'TSV'));
+document.getElementById('btn-copy-csv').addEventListener('click', () => copy(buildTSV(','),  'CSV'));
+
+document.getElementById('btn-reset').addEventListener('click', () => {
+  drivers = [];
+  document.getElementById('preview-section').classList.remove('show');
+  document.getElementById('parse-status').className = 'alert';
+  document.getElementById('inp-table').value = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+</script>
+</body>
+</html>
