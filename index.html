@@ -4,6 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VORC Series — Pilotos</title>
+  <script>
+    // Embutido como iframe na página do Blogger, que já tem seu próprio rodapé — evita duplicar.
+    if (window.self !== window.top) {
+      document.documentElement.classList.add('in-iframe');
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -203,7 +209,8 @@
     .r-high { color: var(--gold);    border-color: var(--gold);    background: rgba(255,215,0,.08); }
     .r-mid  { color: var(--orange);  border-color: var(--orange);  background: rgba(245,166,35,.08); }
     .r-low  { color: var(--silver);  border-color: #444;           background: rgba(255,255,255,.04); }
-    .trend-arrow { display: inline-block; width: 14px; margin-left: 6px; font-size: 12px; font-weight: 700; text-align: center; }
+    .trend-arrow { display: inline-block; position: relative; width: 14px; margin-left: 6px; font-size: 12px; font-weight: 700; text-align: center; }
+    .trend-arrow::before { content: ''; position: absolute; inset: -8px; } /* área de hover maior — o alvo visível é pequeno demais pra mirar com precisão */
     .trend-up   { color: var(--green); }
     .trend-down { color: var(--red); }
     .trend-flat { color: var(--muted); }
@@ -213,6 +220,8 @@
       font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700;
       letter-spacing: .5px; white-space: nowrap; border: 1px solid;
     }
+    .lic-transition { display: inline-flex; align-items: center; gap: 5px; cursor: help; }
+    .lic-transition-arrow { color: var(--muted); font-size: 12px; }
     .lic-B { color: var(--bronze);   border-color: var(--bronze);   background: rgba(205,127,50,.12); }
     .lic-S { color: var(--silver);   border-color: var(--silver);   background: rgba(176,176,186,.1); }
     .lic-G { color: var(--gold);     border-color: var(--gold);     background: rgba(255,215,0,.1); }
@@ -241,6 +250,7 @@
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ─── FOOTER ─── */
+    html.in-iframe .footer { display: none; }
     .footer {
       padding: 20px 32px; background: #0a0a0c; border-top: 1px solid var(--border);
       font-size: 12px; color: var(--muted);
@@ -262,7 +272,7 @@
       -webkit-tap-highlight-color: transparent;
     }
     .pilot-card:active { background: rgba(245,166,35,.07); border-color: var(--orange); }
-    .card-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; color: var(--muted); min-width: 28px; text-align: center; }
+    .card-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 18px; font-weight: 800; color: var(--text); min-width: 28px; text-align: center; }
     .card-main { flex: 1; min-width: 0; }
     .card-name { font-family: 'Barlow', sans-serif; font-size: 16px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-sub { display: flex; align-items: center; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
@@ -398,7 +408,7 @@
     .sidebar-title { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
     .top-pilot-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
     .top-pilot-row:last-child { border-bottom: none; }
-    .top-pilot-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; color: var(--muted); width: 18px; text-align: center; flex-shrink: 0; }
+    .top-pilot-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 13px; font-weight: 700; color: var(--text); width: 18px; text-align: center; flex-shrink: 0; }
     .top-pilot-name { flex: 1; font-size: 12px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .top-pilot-count { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 800; color: var(--orange); }
     .sidebar-divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
@@ -436,12 +446,12 @@
     .hist-card-header { display: flex; align-items: flex-start; gap: 8px; }
     .hist-card-temp { font-family: 'Barlow Condensed', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; white-space: nowrap; padding-top: 3px; }
     .hist-card-camp { font-family: 'Barlow Condensed', sans-serif; font-size: 16px; font-weight: 700; color: #fff; flex: 1; line-height: 1.25; }
-    .hist-card-tipo { font-size: 12px; color: var(--muted); }
+    .hist-card-tipo { font-size: 12px; color: var(--text); font-weight: 600; }
     .hist-card-stats { display: flex; gap: 20px; align-items: flex-end; }
     .hist-card-stat { display: flex; flex-direction: column; gap: 2px; }
     .hist-card-stat-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); }
     .hist-card-stat-val { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 700; color: var(--text); line-height: 1; }
-    .hist-card-stat-val.sm { font-size: 14px; color: var(--muted); }
+    .hist-card-stat-val.sm { font-size: 14px; color: var(--text); }
 
     /* ─── TITULOS / EVENTOS CARDS (mobile) ─── */
     .titulos-cards, .eventos-cards { display: none; flex-direction: column; gap: 8px; padding: 0 16px 48px; }
@@ -450,10 +460,10 @@
       border-radius: var(--radius); padding: 14px 16px;
       display: flex; align-items: center; gap: 14px;
     }
-    .titulos-card-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; color: var(--muted); min-width: 28px; text-align: center; flex-shrink: 0; }
+    .titulos-card-rank { font-family: 'Barlow Condensed', sans-serif; font-size: 20px; font-weight: 800; color: var(--text); min-width: 28px; text-align: center; flex-shrink: 0; }
     .titulos-card-main { flex: 1; min-width: 0; }
     .titulos-card-name { font-family: 'Barlow', sans-serif; font-size: 16px; font-weight: 600; color: #fff; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .titulos-card-period { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .titulos-card-period { font-size: 12px; color: var(--text); font-weight: 600; margin-top: 3px; }
     .titulos-card-count { font-family: 'Barlow Condensed', sans-serif; font-size: 24px; font-weight: 800; color: var(--orange); white-space: nowrap; flex-shrink: 0; }
 
     /* ─── MOBILE ─── */
@@ -653,7 +663,7 @@
     /* ════════════════════════════════════════════
        STATE
     ════════════════════════════════════════════ */
-    const dataCache = { pilotos: null, historico: null, campeoes: null, licBands: null, trends: null };
+    const dataCache = { pilotos: null, historico: null, campeoes: null, licBands: null, trends: null, seasonByPilot: null };
     let sortCol = 'Rating', sortDir = -1;
     let filteredCache = [];
     let ratingChartInstance = null;
@@ -707,6 +717,34 @@
       let label = LIC_THRESHOLDS[0].label;
       LIC_THRESHOLDS.forEach(band => { if (r >= band.min) label = band.label; });
       return LIC_LABEL_TO_EMOJI[label];
+    }
+
+    // Licença antes/depois de uma TEMPORADA inteira de um piloto (não de um
+    // campeonato isolado — a licença muda pela média da temporada, então
+    // mostrar "antes/depois" por campeonato individual é enganoso quando ele
+    // disputa mais de um na mesma temporada). Usado no modal de classificação
+    // e no cabeçalho de cada temporada no Histórico de Campeonatos do perfil.
+    function licenseSeasonTransitionHtml(nome, temporada, small) {
+      const season = dataCache.seasonByPilot?.get(nome)?.get(temporada);
+      if (!season) return '';
+      const licAntes  = licenseEmojiForRating(season.ratingInicio);
+      const licDepois = licenseEmojiForRating(season.ratingFim);
+      const style = small ? ' style="font-size:11px;padding:2px 8px"' : '';
+      if (licAntes === licDepois) {
+        const info = LIC_MAP[licDepois] || { cls: '', label: licDepois };
+        return `<span class="lic-badge ${info.cls}"${style}>${info.icon||'●'} ${info.label}</span>`;
+      }
+      const antesInfo  = LIC_MAP[licAntes]  || { cls: '', label: licAntes };
+      const depoisInfo = LIC_MAP[licDepois] || { cls: '', label: licDepois };
+      let title = `Média da temporada ${temporada}: Rating ${season.ratingInicio} → ${season.ratingFim}`;
+      if (season.campeonatos.length > 1) {
+        title += ' — ' + season.campeonatos.map(c => `${c.campeonato} (Δ ${c.delta>0?'+':''}${c.delta})`).join(' · ');
+      }
+      return `<span class="lic-transition" title="${title}">
+        <span class="lic-badge ${antesInfo.cls}"${style}>${antesInfo.icon||'●'} ${antesInfo.label}</span>
+        <span class="lic-transition-arrow">→</span>
+        <span class="lic-badge ${depoisInfo.cls}"${style}>${depoisInfo.icon||'●'} ${depoisInfo.label}</span>
+      </span>`;
     }
 
     const licencaBandsPlugin = {
@@ -805,13 +843,11 @@
               const delta    = parseFloat(d['Base Δ']) || 0;
               const dClass   = delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-zero';
               const dStr     = delta > 0 ? `+${delta}` : String(delta || 0);
-              const licN     = licenseEmojiForRating(d['Novo Rating']);
-              const licNInfo = LIC_MAP[licN] || { cls: '', label: licN };
               return `<tr class="${isTit ? 'row-titulo' : ''}">
                 <td class="num modal-pos">${d['Pos.Final']||'—'}</td>
                 <td><a class="pilot-link" href="#piloto/${encodeURIComponent(d['Piloto'])}" onclick="closeModal()">${d['Piloto']}${isTit?' 🏆':''}</a></td>
-                <td>${licN ? `<span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licNInfo.icon||'●'} ${licNInfo.label}</span>` : '—'}</td>
-                <td class="num" style="color:var(--muted)">${d['Pos.Esp']||'—'}</td>
+                <td>${licenseSeasonTransitionHtml(d['Piloto'], d['Temporada'], true)}</td>
+                <td class="num" style="color:var(--text);font-weight:600">${d['Pos.Esp']||'—'}</td>
                 <td class="num"><span class="${dClass}">${dStr}</span></td>
               </tr>`;
             }).join('')}</tbody>
@@ -913,8 +949,6 @@
        RANKING VIEW
     ════════════════════════════════════════════ */
     function renderRow(d) {
-      const lic = d['Licença'] || '';
-      const info = LIC_MAP[lic] || { cls: '', label: lic };
       const nac = (d['Nac'] || '').trim();
       const vit = parseInt(d['Vitórias']) || 0;
       const tit = parseInt(d['Titulos'])  || 0;
@@ -923,16 +957,16 @@
       return `<tr onclick="location.hash='#piloto/${encodeURIComponent(nome)}'">
         <td class="td-pilot">${nome}</td>
         <td class="num">${ratingBadge(d['Rating'])}${trendArrow(nome)}</td>
-        <td><span class="lic-badge ${info.cls}">${info.icon} ${info.label}</span></td>
+        <td>${licBadge(licenseEmojiForRating(d['Rating']))}</td>
         <td class="flag-cell" style="white-space:nowrap">${flagImg(nac)}${nac ? `<span style="font-size:11px;color:var(--muted)">${nac}</span>` : ''}</td>
-        <td class="num">${d['Corridas'] || 0}</td>
+        <td class="num" style="color:var(--text);font-weight:600">${d['Corridas'] || 0}</td>
         <td class="num ${pol ? 'poles' : ''}">${pol}</td>
         <td class="num ${vit ? 'wins'  : ''}">${vit}</td>
-        <td class="num">${d['2º Lug'] || 0}</td>
-        <td class="num">${d['3º Lug'] || 0}</td>
-        <td class="num">${d['Pódios'] || 0}</td>
+        <td class="num" style="color:var(--text);font-weight:600">${d['2º Lug'] || 0}</td>
+        <td class="num" style="color:var(--text);font-weight:600">${d['3º Lug'] || 0}</td>
+        <td class="num" style="color:var(--text);font-weight:600">${d['Pódios'] || 0}</td>
         <td class="num">${tit ? `<span class="titles" style="font-size:14px">🏆 ${tit}</span>` : `<span style="color:var(--muted)">—</span>`}</td>
-        <td class="num" style="color:var(--muted);font-size:13px">${d['Eventos'] || 0}</td>
+        <td class="num" style="color:var(--text);font-weight:600">${d['Eventos'] || 0}</td>
       </tr>`;
     }
 
@@ -942,7 +976,7 @@
       const ctry = document.getElementById('filter-country').value;
       return dataCache.pilotos.filter(d => {
         if (q    && !(d['Piloto']  || '').toLowerCase().includes(q)) return false;
-        if (lic  && (d['Licença'] || '').trim() !== lic)  return false;
+        if (lic  && licenseEmojiForRating(d['Rating']) !== lic)  return false;
         if (ctry && (d['Nac']     || '').trim() !== ctry) return false;
         return true;
       });
@@ -975,8 +1009,6 @@
         return;
       }
       wrap.innerHTML = data.map((d, i) => {
-        const lic  = d['Licença'] || '';
-        const info = LIC_MAP[lic] || { cls: '', label: lic };
         const nac  = (d['Nac'] || '').trim();
         const nome = d['Piloto'] || '—';
         return `<div class="pilot-card" onclick="location.hash='#piloto/${encodeURIComponent(nome)}'">
@@ -985,7 +1017,7 @@
             <div class="card-name">${nome}</div>
             <div class="card-sub">
               <span class="rating-badge ${ratingClass(d['Rating'])}" style="font-size:13px;padding:2px 7px">${d['Rating'] ?? '—'}</span>${trendArrow(nome)}
-              <span class="lic-badge ${info.cls}" style="font-size:12px;padding:2px 8px">${info.icon} ${info.label}</span>
+              ${licBadge(licenseEmojiForRating(d['Rating']), true)}
               <span style="display:inline-flex;align-items:center;gap:4px">${flagImg(nac)}<small style="font-size:11px;color:var(--muted)">${nac}</small></span>
             </div>
           </div>
@@ -1091,9 +1123,17 @@
       return Math.round(n * 100) / 100;
     }
 
-    // Δ de rating da última temporada disputada por cada piloto (mesma regra
-    // de agrupamento do perfil), usado pra seta de tendência no ranking.
-    function computeTrends(historico) {
+    // O rating "de verdade" de um piloto muda uma vez por TEMPORADA — pela
+    // MÉDIA do "Novo Rating" de todos os campeonatos disputados nela —, não a
+    // cada campeonato individualmente. A planilha calcula cada campeonato de
+    // forma independente (todos partindo do mesmo rating de início de
+    // temporada), então usar qualquer linha isolada — ou só a última — dá
+    // valores contraditórios quando o piloto disputou mais de um campeonato
+    // na mesma temporada (ex: uma corrida ótima e outra péssima na mesma
+    // temporada não podem, sozinhas, decidir se ele sobe ou desce de licença).
+    // Por isso encadeamos temporada a temporada aqui: o rating de início de
+    // uma temporada é o rating de FIM (já em média) da temporada anterior.
+    function computeSeasonAverages(historico) {
       const byPilot = new Map();
       historico.forEach(d => {
         const nome = d['Piloto']?.trim();
@@ -1102,14 +1142,53 @@
         byPilot.get(nome).push(d);
       });
 
-      const trends = new Map();
+      const finalRatings  = new Map(); // nome -> rating final (fim da última temporada)
+      const seasonByPilot = new Map(); // nome -> Map(temporada -> { ratingInicio, ratingFim, avgDelta, campeonatos })
+
       byPilot.forEach((rows, nome) => {
-        const lastTemp = rows[rows.length - 1]['Temporada'];
-        let i = rows.length - 1;
-        while (i > 0 && rows[i - 1]['Temporada'] === lastTemp) i--;
-        const ratingInicio = parseFloat(rows[i]['Rating']) || 0;
-        const ratingFim    = parseFloat(rows[rows.length - 1]['Novo Rating']) || 0;
-        trends.set(nome, round2(ratingFim - ratingInicio));
+        const groups = [];
+        rows.forEach(d => {
+          const temp = d['Temporada'];
+          const last = groups[groups.length - 1];
+          if (last && last.temporada === temp) last.rows.push(d);
+          else groups.push({ temporada: temp, rows: [d] });
+        });
+
+        let current = parseFloat(rows[0]['Rating']) || 0; // bootstrap: rating antes da 1ª temporada
+        const seasons = new Map();
+
+        groups.forEach(g => {
+          const novos       = g.rows.map(r => parseFloat(r['Novo Rating']) || 0);
+          const ratingFim   = round2(novos.reduce((s, v) => s + v, 0) / novos.length);
+          const ratingInicio = current;
+          seasons.set(g.temporada, {
+            ratingInicio,
+            ratingFim,
+            avgDelta: round2(ratingFim - ratingInicio),
+            campeonatos: g.rows.map(r => ({
+              campeonato: r['Campeonato'],
+              delta: parseFloat(r['Base Δ']) || 0,
+            })),
+          });
+          current = ratingFim;
+        });
+
+        finalRatings.set(nome, current);
+        seasonByPilot.set(nome, seasons);
+      });
+
+      return { finalRatings, seasonByPilot };
+    }
+
+    // Δ de rating e transição de licença na última temporada disputada por
+    // cada piloto — deriva de computeSeasonAverages, usado pra seta de
+    // tendência e pro badge de licença antes/depois no ranking.
+    function computeTrends(seasonByPilot) {
+      const trends = new Map();
+      seasonByPilot.forEach((seasons, nome) => {
+        const temporadas = [...seasons.keys()];
+        const lastTemp    = temporadas[temporadas.length - 1];
+        trends.set(nome, seasons.get(lastTemp).avgDelta);
       });
       return trends;
     }
@@ -1155,7 +1234,15 @@
         if (--pending > 0) return;
         dataCache.pilotos = pilotosRows;
         dataCache.historico = historicoRows;
-        dataCache.trends = computeTrends(dataCache.historico);
+
+        const { finalRatings, seasonByPilot } = computeSeasonAverages(dataCache.historico);
+        dataCache.seasonByPilot = seasonByPilot;
+        dataCache.trends = computeTrends(seasonByPilot);
+        dataCache.pilotos.forEach(d => {
+          const nome = (d['Piloto'] || '').trim();
+          if (finalRatings.has(nome)) d['Rating'] = finalRatings.get(nome);
+          d['Rating'] = Math.round(parseFloat(d['Rating']) || 0);
+        });
 
         updateStats(dataCache.pilotos);
         populateCountries(dataCache.pilotos);
@@ -1216,8 +1303,8 @@
       const historico   = dataCache.historico.filter(d => d['Piloto']?.trim() === nome);
       const pilotoBase  = dataCache.pilotos?.find(d => d['Piloto']?.trim() === nome);
       const nac         = (pilotoBase?.['Nac'] || historico[0]?.['Nac'] || '').trim();
-      const licAtual    = pilotoBase?.['Licença'] || (historico.length ? licenseEmojiForRating(historico[historico.length-1]['Novo Rating']) : '');
-      const ratingAtual = pilotoBase?.['Rating']  || historico[historico.length-1]?.['Novo Rating'] || '—';
+      const ratingAtual = pilotoBase?.['Rating'] ?? (dataCache.seasonByPilot?.get(nome) ? [...dataCache.seasonByPilot.get(nome).values()].pop().ratingFim : '—');
+      const licAtual    = licenseEmojiForRating(ratingAtual);
       const licInfo     = LIC_MAP[licAtual] || { cls: '', label: licAtual };
       const titulos     = historico.filter(d => String(d['Título']).trim() === '1');
 
@@ -1240,10 +1327,12 @@
       const histCardItems = [];
 
       // Corridas da mesma temporada ficam em blocos consecutivos (histórico é
-      // cronológico). Agrupamos apenas visualmente por temporada — um
-      // cabeçalho de grupo em vez de repetir a temporada em cada corrida —
-      // sem recalcular nada: os valores de Rating/Pos.Esp/Δ exibidos são os
-      // que já vêm prontos da planilha.
+      // cronológico). Agrupamos visualmente por temporada — um cabeçalho de
+      // grupo em vez de repetir a temporada em cada corrida — e o Rating/
+      // licença de início/fim de cada temporada vêm de computeSeasonAverages
+      // (média dos campeonatos daquela temporada, ver comentário lá). Pos.Esp
+      // e Δ de cada linha continuam crus, exatamente como vêm da planilha.
+      const pilotSeasons = dataCache.seasonByPilot?.get(nome);
       const seasonGroups = [];
       historico.forEach(d => {
         const temp = d['Temporada'] || '—';
@@ -1254,42 +1343,43 @@
 
       seasonGroups.forEach((group, idx) => {
         const { temporada, rows } = group;
-        const ratingInicio = rows[0]['Rating'];
-        const ratingFim    = rows[rows.length - 1]['Novo Rating'];
-        const delta        = round2((parseFloat(ratingFim) || 0) - (parseFloat(ratingInicio) || 0));
+        const season       = pilotSeasons?.get(temporada);
+        const ratingInicio = season?.ratingInicio ?? '—';
+        const ratingFim    = season?.ratingFim ?? '—';
+        const delta        = season?.avgDelta ?? 0;
         const dClass       = delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-zero';
         const dStr         = delta > 0 ? `+${delta}` : String(delta || 0);
         const n            = rows.length;
-        const metaTxt      = `${n} campeonato${n>1?'s':''} · Rating <strong>${ratingInicio ?? '—'}</strong> → <strong>${ratingFim ?? '—'}</strong> · Δ <span class="${dClass}">${dStr}</span>`;
+        const licHtml       = licenseSeasonTransitionHtml(nome, temporada, true);
+        const metaTxt      = `${n} campeonato${n>1?'s':''} · Rating <strong>${ratingInicio}</strong> → <strong>${ratingFim}</strong> · Δ <span class="${dClass}">${dStr}</span>`;
 
         // guarda os valores do próprio grupo p/ reaproveitar no gráfico
         Object.assign(group, { ratingInicio, ratingFim, avgDelta: delta, n });
 
         histRows.push(`<tr class="hist-season-row" data-season="${idx}"><td colspan="6"><div class="hist-season-header">
           <span class="hist-season-label">${temporada}</span>
-          <span class="hist-season-meta">${metaTxt}</span>
+          <span class="hist-season-meta">${metaTxt}${licHtml ? ` · ${licHtml}` : ''}</span>
         </div></td></tr>`);
 
         histCardItems.push(`<div class="hist-season-divider" data-season="${idx}">
           <span>${temporada}</span>
-          <small>${n} campeonato${n>1?'s':''} · Rating ${ratingInicio ?? '—'} → ${ratingFim ?? '—'} · Δ ${dStr}</small>
+          <small>${n} campeonato${n>1?'s':''} · Rating ${ratingInicio} → ${ratingFim} · Δ ${dStr}</small>
+          ${licHtml ? `<div style="margin-top:4px">${licHtml}</div>` : ''}
         </div>`);
 
         rows.forEach(d => {
           const delta    = parseFloat(d['Base Δ']) || 0;
           const dClass   = delta > 0 ? 'delta-pos' : delta < 0 ? 'delta-neg' : 'delta-zero';
           const dStr     = delta > 0 ? `+${delta}` : String(delta || 0);
-          const licN     = licenseEmojiForRating(d['Novo Rating']);
-          const licNInfo = LIC_MAP[licN] || { cls: '', label: licN };
           const isTit    = String(d['Título']).trim() === '1';
 
           histRows.push(`<tr class="${isTit ? 'row-titulo' : ''}" data-season="${idx}" ${campTrigger(d['Campeonato'], d['Temporada'])} style="cursor:pointer">
             <td>${d['Campeonato']}${isTit?' <span style="font-size:12px">🏆</span>':''}</td>
-            <td><small style="color:var(--muted)">${d['Tipo']||'—'}</small></td>
-            <td class="num" style="color:var(--muted)">${d['Pos.Esp']||'—'}</td>
+            <td><small style="color:var(--text);font-weight:600">${d['Tipo']||'—'}</small></td>
+            <td class="num" style="color:var(--text);font-weight:600">${d['Pos.Esp']||'—'}</td>
             <td class="num">${d['Pos.Final']||'—'}</td>
             <td class="num"><span class="${dClass}">${dStr}</span></td>
-            <td>${licN ? `<span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licNInfo.icon||'●'} ${licNInfo.label}</span>` : '—'}</td>
+            <td style="color:var(--muted)">—</td>
           </tr>`);
 
           histCardItems.push(`<div class="hist-card ${isTit ? 'hist-card--titulo' : ''}" data-season="${idx}" ${campTrigger(d['Campeonato'], d['Temporada'])} style="cursor:pointer">
@@ -1311,7 +1401,6 @@
                 <span class="hist-card-stat-val ${dClass}">${dStr}</span>
               </div>
             </div>
-            ${licN ? `<div><span class="lic-badge ${licNInfo.cls}" style="font-size:11px;padding:2px 8px">${licNInfo.icon||'●'} ${licNInfo.label}</span></div>` : ''}
           </div>`);
         });
       });
@@ -1491,8 +1580,8 @@
         const labels      = seasonGroups.map(g => g.temporada);
         const ratings     = seasonGroups.map(g => parseFloat(g.ratingFim) || null);
         const pointColors = seasonGroups.map(g => {
-          const rankAntes  = LIC_MAP[g.rows[0]['Licença']?.trim()]?.rank || 0;
-          const rankDepois = LIC_MAP[licenseEmojiForRating(g.rows[g.rows.length-1]['Novo Rating'])]?.rank || 0;
+          const rankAntes  = LIC_MAP[licenseEmojiForRating(g.ratingInicio)]?.rank || 0;
+          const rankDepois = LIC_MAP[licenseEmojiForRating(g.ratingFim)]?.rank || 0;
           return rankDepois > rankAntes ? '#4caf50' : '#f5a623';
         });
 
@@ -1768,11 +1857,11 @@
         });
         document.getElementById('titulos-body').innerHTML = sorted.map((r,i) =>
           `<tr>
-            <td style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;padding:11px 12px">${i+1}</td>
+            <td style="color:var(--text);font-family:'Barlow Condensed',sans-serif;font-weight:700;padding:11px 12px">${i+1}</td>
             <td class="td-pilot"><a class="pilot-link" href="#piloto/${encodeURIComponent(r.nome)}">${r.nome}</a></td>
             <td class="num titles" style="font-size:18px">${r.total}</td>
-            <td class="num" style="color:var(--muted)">${r.primeiroAno}</td>
-            <td class="num" style="color:var(--muted)">${r.ultimoAno}</td>
+            <td class="num" style="color:var(--text);font-weight:600">${r.primeiroAno}</td>
+            <td class="num" style="color:var(--text);font-weight:600">${r.ultimoAno}</td>
           </tr>`
         ).join('');
 
@@ -1883,11 +1972,11 @@
 
         document.getElementById('eventos-body').innerHTML = sorted.map((r, i) =>
           `<tr>
-            <td style="color:var(--muted);font-family:'Barlow Condensed',sans-serif;font-weight:700;padding:11px 12px">${i + 1}</td>
+            <td style="color:var(--text);font-family:'Barlow Condensed',sans-serif;font-weight:700;padding:11px 12px">${i + 1}</td>
             <td class="td-pilot"><a class="pilot-link" href="#piloto/${encodeURIComponent(r.nome)}">${r.nome}</a></td>
             <td class="num" style="font-size:18px">${r.eventos}</td>
-            <td class="num" style="color:var(--muted)">${r.primeiro}</td>
-            <td class="num" style="color:var(--muted)">${r.ultimo}</td>
+            <td class="num" style="color:var(--text);font-weight:600">${r.primeiro}</td>
+            <td class="num" style="color:var(--text);font-weight:600">${r.ultimo}</td>
           </tr>`
         ).join('');
 
